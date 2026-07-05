@@ -193,7 +193,7 @@ Scaffold Next.js + TS strict + Tailwind/shadcn + Biome + Vitest + Lefthook + CI 
 **Accept:** CI green; production URL serves the app; `pnpm check && pnpm test` pass locally and in CI.
 _(Deploy deferred by decision 2026-07-05 — Phase 0 exit redefined to: `pnpm check && pnpm test && pnpm build` green locally, first migration generated, one clean local commit, GitHub remote created. The production-URL criterion moves to a later cloud phase.)_
 - [x] Scaffold + tooling (Node 24 pinned via `.nvmrc`/`engines`; Next 16.2.10; MCP SDK docs to be verified at Phase 2 start)
-- [x] Schema + migrations
+- [x] Schema + migrations (all §3.1 tables/indexes; `pnpm db:migrate` verified against local docker Postgres)
 - [x] CI pipeline (GitHub Actions: install → check → test → build; activates on first push)
 - [ ] First deploy — deferred to a later cloud phase (see Decision Log)
 
@@ -290,3 +290,13 @@ AI_DAILY_CALL_BUDGET=500    # per-feature guardrail
 | 2026-07-05 | Biome `noFloatingPromises` via `nursery` + type-aware scanner | Rule is nursery in Biome 2.5 and requires type info; enabled as `error` so the "no floating promises" gate is real. |
 | 2026-07-05 | shadcn radix/nova preset; `shadcn` kept as a dependency | `globals.css` imports `shadcn/tailwind.css`, so the `shadcn` package is a build-time CSS dep. Chose classic radix primitives over the newer Base UI. |
 | 2026-07-05 | Local DB driver = postgres.js | Deploy deferred, so local dev/tests use `postgres` (postgres.js). Swap to the Neon serverless driver at the cloud phase; `core/`/schema are driver-agnostic. |
+| 2026-07-05 | `artifacts.search_vector` via IMMUTABLE wrapper function | Inline `to_tsvector`/`array_to_string` are only STABLE, and enum columns in the table taint the inline expression → "generation expression is not immutable". `artifact_search_document()` (IMMUTABLE) is hand-maintained at the top of migration `0000`; Drizzle doesn't model functions. |
+
+## 12. Phase 0 → Phase 1 handoff
+
+- **Local DB:** `docker compose up -d`, then `DATABASE_URL=postgres://artifact_hub:artifact_hub@localhost:5432/artifact_hub pnpm db:migrate` (matches `.env.example`). `docker compose down -v` resets the volume.
+- **Gotcha:** `drizzle-kit migrate` hides real SQL errors behind its spinner — to debug, apply the migration with `psql -v ON_ERROR_STOP=1 < src/db/migrations/0000_*.sql`.
+- **Gotcha:** `artifacts.search_vector` depends on the IMMUTABLE `artifact_search_document()` function hand-added to the top of `0000_*.sql`; if you nuke & regenerate migrations, re-add it (rationale in `schema.ts`).
+- **Half-wired (intentional):** `lib/env.ts` and `db/index.ts` are lazy and imported nowhere yet — Phase 1 wires them into server entrypoints. `id`s are app-generated (Drizzle `$defaultFn`), so raw SQL inserts must supply `id`.
+- **Already logged deviations:** deploy deferred (no Neon/Vercel/Blob); `shadcn` is a real dependency (globals.css imports its CSS); `core/` coverage gate only runs under `--coverage`.
+- **Not built yet:** `/publish` route (gallery CTA links to it), all `core/` logic, MCP tools, blob adapter — Phase 1+.

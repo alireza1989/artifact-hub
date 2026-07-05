@@ -67,8 +67,16 @@ export const artifacts = pgTable(
     sizeBytes: integer("size_bytes").notNull(),
     source: artifactSource("source").notNull(),
     aiGeneratedMeta: jsonb("ai_generated_meta").$type<AiGeneratedMeta>(),
+    // Generated STORED columns require a strictly IMMUTABLE expression. Building
+    // the tsvector inline fails ("generation expression is not immutable"):
+    // `to_tsvector('english', ...)` and `array_to_string()` are only STABLE, and
+    // — subtly — the presence of enum columns in this table taints an otherwise
+    // immutable inline expression. The robust idiom is an IMMUTABLE wrapper
+    // function that Postgres trusts by declaration. `artifact_search_document` is
+    // defined in migration 0000 (Drizzle does not model functions); if migrations
+    // are ever regenerated from scratch, that CREATE FUNCTION must be preserved.
     searchVector: tsvector("search_vector").generatedAlwaysAs(
-      sql`to_tsvector('english', coalesce(title, '') || ' ' || coalesce(description, '') || ' ' || array_to_string(tags, ' '))`,
+      sql`artifact_search_document(title, description, tags)`,
     ),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

@@ -1,3 +1,10 @@
+-- Manually maintained: IMMUTABLE wrapper backing the artifacts.search_vector
+-- generated column (Drizzle does not model functions). Must be created before
+-- the artifacts table. See src/db/schema.ts for the rationale.
+CREATE OR REPLACE FUNCTION artifact_search_document(title text, description text, tags text[])
+	RETURNS tsvector LANGUAGE sql IMMUTABLE AS $$
+		SELECT to_tsvector('english'::regconfig, coalesce(title, '') || ' ' || coalesce(description, '') || ' ' || coalesce(array_to_string(tags, ' '), ''))
+	$$;--> statement-breakpoint
 CREATE TYPE "public"."artifact_kind" AS ENUM('html', 'image', 'svg', 'pdf', 'markdown', 'text', 'json', 'csv', 'other');--> statement-breakpoint
 CREATE TYPE "public"."artifact_source" AS ENUM('web', 'mcp', 'api');--> statement-breakpoint
 CREATE TYPE "public"."llm_outcome" AS ENUM('ok', 'schema_retry_ok', 'fallback', 'error');--> statement-breakpoint
@@ -12,7 +19,7 @@ CREATE TABLE "artifacts" (
 	"size_bytes" integer NOT NULL,
 	"source" "artifact_source" NOT NULL,
 	"ai_generated_meta" jsonb,
-	"search_vector" "tsvector" GENERATED ALWAYS AS (to_tsvector('english', coalesce(title, '') || ' ' || coalesce(description, '') || ' ' || array_to_string(tags, ' '))) STORED,
+	"search_vector" "tsvector" GENERATED ALWAYS AS (artifact_search_document(title, description, tags)) STORED,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );

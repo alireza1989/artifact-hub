@@ -1,5 +1,5 @@
 {
-  "id": "49bea082-707f-4a45-a59a-04951abae8e0",
+  "id": "20062fdd-501d-4d3d-8179-ac5e04910685",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -77,7 +77,7 @@
           "primaryKey": false,
           "notNull": false,
           "generated": {
-            "as": "to_tsvector('english', coalesce(title, '') || ' ' || coalesce(description, '') || ' ' || array_to_string(tags, ' '))",
+            "as": "artifact_search_document(title, description, tags)",
             "type": "stored"
           }
         },

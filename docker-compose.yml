@@ -1,0 +1,24 @@
+# Local Postgres for development and integration tests (PLAN §6, deploy deferred).
+# Start:   docker compose up -d
+# Migrate: DATABASE_URL=postgres://artifact_hub:artifact_hub@localhost:5432/artifact_hub pnpm db:migrate
+# Stop:    docker compose down   (add -v to also drop the data volume)
+services:
+  db:
+    image: postgres:17
+    container_name: artifact-hub-db
+    environment:
+      POSTGRES_USER: artifact_hub
+      POSTGRES_PASSWORD: artifact_hub
+      POSTGRES_DB: artifact_hub
+    ports:
+      - "5432:5432"
+    volumes:
+      - artifact-hub-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U artifact_hub -d artifact_hub"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  artifact-hub-db-data:
