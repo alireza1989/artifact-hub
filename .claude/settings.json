@@ -65,7 +65,21 @@
       "Bash(mkdir -p src/core/artifacts src/core/sharing src/core/feedback src/core/ai src/lib/ai src/lib/storage src/lib/validation src/mcp \"src/app/\\(gallery\\)\" \"src/app/share/[token]\" \"src/app/raw/[id]\" src/app/api/mcp src/app/api/v1 tests/unit tests/integration tests/evals && mv \"src/app/page.tsx\" \"src/app/\\(gallery\\)/page.tsx\" && echo \"OK\" && find src tests -type d | sort)",
       "Bash(pnpm format *)",
       "Bash(git init *)",
-      "Bash(git remote *)"
+      "Bash(git remote *)",
+      "Bash(docker version *)",
+      "Bash(DATABASE_URL=postgres://artifact_hub:artifact_hub@localhost:5432/artifact_hub pnpm exec drizzle-kit migrate)",
+      "Bash(docker exec *)",
+      "Bash(echo \"EXIT=$?\")",
+      "Read(//tmp/**)",
+      "Bash(echo \"--- exit form1: $? ---\")",
+      "Bash(echo \"--- exit form2: $? ---\")",
+      "Bash(echo \"A\\(tags::text\\) exit=$?\")",
+      "Bash(echo \"B\\(function\\) exit=$?\")",
+      "Bash(echo \"full-expr exit=$?\")",
+      "Bash(echo \"t_z exit=$?\")",
+      "Bash(echo \"immutable-function-with-real-enums exit=$?\")",
+      "Bash(git check-ignore *)",
+      "Bash(mkdir -p \"/Users/alireza/.claude/projects/-Users-alireza-Documents-projects-artifact-hub/memory/\")"
     ],
     "deny": [
       "Read(.env)",
@@ -86,6 +100,10 @@
       "Bash(pnpm remove:*)",
       "Bash(curl:*)",
       "WebFetch"
+    ],
+    "additionalDirectories": [
+      "/Users/alireza/Documents/projects/artifact-hub/src/app/share",
+      "/Users/alireza/.claude/projects/-Users-alireza-Documents-projects-artifact-hub"
     ]
   }
 }
