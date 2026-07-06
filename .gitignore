@@ -45,3 +45,8 @@ next-env.d.ts
 .turbo
 /test-results
 evals/report.json
+
+# claude code plugin scaffolding (neon/vercel) — revisit if needed for evals
+.agents/
+.claude/skills/
+skills-lock.json
