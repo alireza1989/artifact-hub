@@ -9,9 +9,13 @@ import { FileTooLargeError } from "./errors";
 // inline/base64 cutoff (Vercel's 4.5 MB request-body limit), up to the 25 MB
 // artifact ceiling. Guards: https only, reject private/loopback/link-local/reserved
 // hosts, cap redirects (re-validating each hop), and stream-enforce the size cap.
-// Note: a residual DNS-rebinding (TOCTOU) window remains — full mitigation requires
-// pinning the resolved IP into the socket, which global fetch doesn't expose; the
-// write path is bearer-gated and single-team, so this is proportionate for v1.
+// Accepted residual risk — DNS-rebinding / TOCTOU: assertPublicHost validates the
+// DNS-resolved IP, but global `fetch` then re-resolves the hostname independently,
+// so a hostile DNS server could answer a public IP to the check and a private IP to
+// the fetch. Closing it fully requires pinning the validated IP into the socket via
+// a custom http.Agent (`lookup` override) — disproportionate for v1 because this
+// path is bearer-gated and single-team (an attacker needs the admin token first).
+// Tracked in the PLAN Decision Log with socket-level IP pinning as the future fix.
 
 export class InvalidSourceUrlError extends DomainError {
   readonly code = "invalid_source_url";
@@ -63,15 +67,19 @@ function parseHttpsUrl(raw: string): URL {
 }
 
 async function assertPublicHost(hostname: string): Promise<void> {
-  const addresses = isIP(hostname)
-    ? [hostname]
-    : await lookup(hostname, { all: true })
+  // URL.hostname wraps IPv6 literals in brackets ("[::1]"), which isIP() rejects —
+  // strip them so an IPv6 literal is classified directly instead of falling through
+  // to a DNS lookup of a bracketed string (which would only be blocked incidentally).
+  const host = hostname.replace(/^\[(.+)\]$/, "$1");
+  const addresses = isIP(host)
+    ? [host]
+    : await lookup(host, { all: true })
         .then((records) => records.map((r) => r.address))
         .catch(() => {
-          throw new InvalidSourceUrlError(`cannot resolve host ${hostname}`);
+          throw new InvalidSourceUrlError(`cannot resolve host ${host}`);
         });
 
-  if (addresses.length === 0) throw new InvalidSourceUrlError(`cannot resolve host ${hostname}`);
+  if (addresses.length === 0) throw new InvalidSourceUrlError(`cannot resolve host ${host}`);
   for (const address of addresses) {
     if (isDisallowedAddress(address)) {
       throw new InvalidSourceUrlError("host resolves to a private or reserved address");
@@ -103,11 +111,25 @@ function isDisallowedV4(ip: string): boolean {
 function isDisallowedV6(ip: string): boolean {
   const addr = ip.toLowerCase();
   if (addr === "::1" || addr === "::") return true; // loopback, unspecified
-  const mapped = addr.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
-  if (mapped?.[1]) return isDisallowedV4(mapped[1]); // IPv4-mapped
+  const embedded = embeddedV4(addr);
+  if (embedded) return isDisallowedV4(embedded); // IPv4-mapped, classify the v4
   if (/^fe[89ab]/.test(addr)) return true; // fe80::/10 link-local
   if (/^f[cd]/.test(addr)) return true; // fc00::/7 unique-local
   return false;
+}
+
+// Extract the embedded IPv4 from an IPv4-mapped IPv6 (::ffff:*), in either the
+// dotted form (`::ffff:127.0.0.1`) or the hex form the URL parser normalizes to
+// (`::ffff:7f00:1`). Without the hex case, a loopback/private target slips through.
+function embeddedV4(v6: string): string | null {
+  const tail = v6.match(/^::ffff:(.+)$/)?.[1];
+  if (!tail) return null;
+  if (/^\d+\.\d+\.\d+\.\d+$/.test(tail)) return tail;
+  const hex = tail.match(/^([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
+  if (!hex?.[1] || !hex[2]) return null;
+  const hi = Number.parseInt(hex[1], 16);
+  const lo = Number.parseInt(hex[2], 16);
+  return `${(hi >> 8) & 255}.${hi & 255}.${(lo >> 8) & 255}.${lo & 255}`;
 }
 
 async function readCapped(res: Response, max: number): Promise<Uint8Array> {

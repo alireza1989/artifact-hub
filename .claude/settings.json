@@ -92,7 +92,13 @@
       "Bash(CI= npx -y neonctl env pull --help)",
       "Bash(CI= npx -y neonctl env pull --file .env.local)",
       "Bash(CI= npx -y neonctl init --agent --data '{\"step\":\"neon-auth\",\"agent\":\"claude-code\",\"setup\":true}')",
-      "Bash(pnpm drizzle-kit *)"
+      "Bash(pnpm drizzle-kit *)",
+      "Bash(pnpm why *)",
+      "Bash(cd node_modules/@modelcontextprotocol/sdk/dist/esm/server; echo \"=== registerTool full signature \\(mcp.d.ts 150-185\\) ===\"; sed -n '150,190p' mcp.d.ts; echo \"=== ZodRawShapeCompat def ===\"; grep -rn \"ZodRawShapeCompat\" ../shared/*.d.ts *.d.ts 2>/dev/null | grep -i \"type\\\\|=\" | head; echo \"=== StreamableHTTP transport constructor options ===\"; grep -n \"sessionIdGenerator\\\\|enableJsonResponse\\\\|class StreamableHTTPServerTransport\\\\|handleRequest\\\\|enableDnsRebindingProtection\\\\|allowedHosts\" streamableHttp.d.ts | head -30)",
+      "Read(//Users/alireza/Documents/projects/**)",
+      "Bash(awk '/StreamableHTTPServerTransportOptions/{f=1} f{print NR\": \"$0} f&&/\\\\}/{c++; if\\(c>=1 && /^\\\\}/\\) exit}' node_modules/@modelcontextprotocol/sdk/dist/esm/server/streamableHttp.d.ts)",
+      "Bash(git -C /Users/alireza/Documents/projects/artifact-hub status --short)",
+      "Bash(SMOKE_BASE_URL=\"http://localhost:3000\" pnpm smoke)"
     ],
     "deny": [
       "Read(.env)",
