@@ -2,15 +2,21 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { createArtifact, deleteArtifact } from "@/core/artifacts";
+import { ArtifactNotFoundError, createArtifact, deleteArtifact } from "@/core/artifacts";
 import { DomainError } from "@/core/errors";
 import { createSession, hasValidSession } from "@/lib/auth/session";
+import { logger } from "@/lib/logger";
 import { artifactIdSchema, publishMetadataSchema } from "@/lib/validation";
 
 export type FormState = { error?: string };
 
-function messageFor(error: unknown): string {
+// Domain errors are expected outcomes with user-safe messages; anything else is an
+// unexpected failure (blob/db/infra) — log it with context so it surfaces in the
+// server logs instead of vanishing behind the generic message (CLAUDE.md: never
+// swallow errors silently), while the user still sees a non-leaky generic string.
+function messageFor(error: unknown, context: Record<string, unknown>): string {
   if (error instanceof DomainError) return error.message;
+  logger.error({ err: error, ...context }, "web action failed");
   return "Something went wrong. Please try again.";
 }
 
@@ -53,7 +59,7 @@ export async function publishAction(_prev: FormState, formData: FormData): Promi
     });
     id = artifact.id;
   } catch (error) {
-    return { error: messageFor(error) };
+    return { error: messageFor(error, { action: "publish", filename: file.name || undefined }) };
   }
 
   revalidatePath("/");
@@ -63,7 +69,16 @@ export async function publishAction(_prev: FormState, formData: FormData): Promi
 export async function deleteArtifactAction(formData: FormData): Promise<void> {
   if (!(await hasValidSession())) redirect("/unlock");
   const id = artifactIdSchema.parse(String(formData.get("id")));
-  await deleteArtifact(id);
+  try {
+    await deleteArtifact(id);
+  } catch (error) {
+    // Already gone → idempotent success. Anything else → log with context and
+    // rethrow so the error boundary surfaces it (and Vercel logs capture it).
+    if (!(error instanceof ArtifactNotFoundError)) {
+      logger.error({ err: error, action: "delete", id }, "web action failed");
+      throw error;
+    }
+  }
   revalidatePath("/");
   redirect("/");
 }
