@@ -11,6 +11,26 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    # Integration tests (PLAN §6) run against a real Postgres service container.
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: artifact_hub
+          POSTGRES_PASSWORD: artifact_hub
+          POSTGRES_DB: artifact_hub_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U artifact_hub -d artifact_hub_test"
+          --health-interval 3s
+          --health-timeout 3s
+          --health-retries 20
+
+    env:
+      TEST_DATABASE_URL: postgres://artifact_hub:artifact_hub@localhost:5432/artifact_hub_test
+
     steps:
       - uses: actions/checkout@v4
 

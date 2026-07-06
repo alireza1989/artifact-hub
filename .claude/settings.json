@@ -79,7 +79,20 @@
       "Bash(echo \"t_z exit=$?\")",
       "Bash(echo \"immutable-function-with-real-enums exit=$?\")",
       "Bash(git check-ignore *)",
-      "Bash(mkdir -p \"/Users/alireza/.claude/projects/-Users-alireza-Documents-projects-artifact-hub/memory/\")"
+      "Bash(mkdir -p \"/Users/alireza/.claude/projects/-Users-alireza-Documents-projects-artifact-hub/memory/\")",
+      "Bash(pnpm vitest *)",
+      "Bash(pnpm tsc *)",
+      "Bash(pnpm biome *)",
+      "Bash(DATABASE_URL=postgres://artifact_hub:artifact_hub@localhost:5432/artifact_hub pnpm drizzle-kit migrate)",
+      "Bash(pkill -f \"next dev\")",
+      "Bash(pkill -f \"next-server\")",
+      "Bash(neonctl --version)",
+      "Bash(CI= npx -y neonctl orgs list --output json)",
+      "Bash(CI= npx -y neonctl projects list --org-id org-mute-art-57026417 --output json)",
+      "Bash(CI= npx -y neonctl env pull --help)",
+      "Bash(CI= npx -y neonctl env pull --file .env.local)",
+      "Bash(CI= npx -y neonctl init --agent --data '{\"step\":\"neon-auth\",\"agent\":\"claude-code\",\"setup\":true}')",
+      "Bash(pnpm drizzle-kit *)"
     ],
     "deny": [
       "Read(.env)",

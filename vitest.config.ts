@@ -1,23 +1,42 @@
+import { resolve } from "node:path";
 import { defineConfig } from "vitest/config";
 
-// Coverage is scoped to core/ (the only code with a meaningful line-coverage gate,
-// per PLAN §6). Thresholds are enforced only when running with --coverage; the
-// default `pnpm test` run does not gate on them so early phases with little core/
-// logic stay green.
+// Two projects: `unit` runs anywhere (pure logic, no infra); `integration` runs
+// against a real Postgres (PLAN §6) and is serialized so all files share one test
+// DB without cross-file races. Coverage stays scoped to core/ (the only code with
+// a meaningful gate) and is enforced only under --coverage.
 export default defineConfig({
+  resolve: {
+    alias: { "@": resolve(import.meta.dirname, "src") },
+  },
   test: {
-    globals: true,
-    environment: "node",
-    include: ["tests/**/*.test.ts"],
     coverage: {
       provider: "v8",
       include: ["src/core/**/*.ts"],
-      thresholds: {
-        lines: 85,
-        functions: 85,
-        branches: 85,
-        statements: 85,
-      },
+      thresholds: { lines: 85, functions: 85, branches: 85, statements: 85 },
     },
+    projects: [
+      {
+        resolve: { alias: { "@": resolve(import.meta.dirname, "src") } },
+        test: {
+          name: "unit",
+          globals: true,
+          environment: "node",
+          include: ["tests/unit/**/*.test.ts"],
+        },
+      },
+      {
+        resolve: { alias: { "@": resolve(import.meta.dirname, "src") } },
+        test: {
+          name: "integration",
+          globals: true,
+          environment: "node",
+          include: ["tests/integration/**/*.test.ts"],
+          globalSetup: ["tests/integration/global-setup.ts"],
+          setupFiles: ["tests/integration/setup.ts"],
+          fileParallelism: false,
+        },
+      },
+    ],
   },
 });

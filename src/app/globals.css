@@ -128,3 +128,58 @@
     @apply font-sans;
   }
 }
+
+/* Rendered-markdown preview (PLAN §2). Scoped so it never leaks into app chrome. */
+.markdown {
+  @apply text-sm leading-relaxed;
+}
+.markdown > :first-child {
+  @apply mt-0;
+}
+.markdown h1,
+.markdown h2,
+.markdown h3 {
+  @apply mt-6 mb-2 font-semibold tracking-tight;
+}
+.markdown h1 {
+  @apply text-xl;
+}
+.markdown h2 {
+  @apply text-lg;
+}
+.markdown p,
+.markdown ul,
+.markdown ol,
+.markdown blockquote,
+.markdown pre,
+.markdown table {
+  @apply my-3;
+}
+.markdown ul {
+  @apply list-disc pl-6;
+}
+.markdown ol {
+  @apply list-decimal pl-6;
+}
+.markdown a {
+  @apply text-primary underline underline-offset-2;
+}
+.markdown code {
+  @apply bg-muted rounded px-1 py-0.5 text-[0.85em];
+}
+.markdown pre {
+  @apply bg-muted overflow-x-auto rounded-lg p-4;
+}
+.markdown pre code {
+  @apply bg-transparent p-0;
+}
+.markdown blockquote {
+  @apply border-border text-muted-foreground border-l-2 pl-4;
+}
+.markdown table {
+  @apply w-full border-collapse text-left;
+}
+.markdown th,
+.markdown td {
+  @apply border-border border px-3 py-1.5;
+}

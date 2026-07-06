@@ -1,0 +1,10 @@
+{
+  "_init": {
+    "features": [
+      "database",
+      "auth"
+    ]
+  },
+  "orgId": "org-mute-art-57026417",
+  "projectId": "autumn-tree-28866286"
+}

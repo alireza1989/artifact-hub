@@ -200,11 +200,12 @@ _(Deploy deferred by decision 2026-07-05 — Phase 0 exit redefined to: `pnpm ch
 ### Phase 1 — Publish & browse (core loop)
 `core/artifacts` (create, get, list/search, delete) + upload pipeline (sniff, limits, blob) + REST routes + gallery UI + artifact page with all §2 preview renderers + `/raw/[id]` sandboxed serving.
 **Accept:** all §2 types publishable and previewing correctly; search/filter works; integration tests green; deployed.
-- [ ] core/artifacts + tests
-- [ ] Upload pipeline (sniffing, limits)
-- [ ] Preview renderers incl. sandboxed HTML/SVG
-- [ ] Gallery + artifact page UI
-- [ ] REST v1 routes + integration tests
+_(Local Phase 1 verified 2026-07-05: read/preview loop for all §2 kinds exercised against a running dev server via `data:`-URL-seeded rows; `pnpm check && pnpm test && pnpm build` green (34 tests). The publish→Vercel-Blob write path is verified in prod with a real `BLOB_READ_WRITE_TOKEN` — see Decision Log.)_
+- [x] core/artifacts + tests (create/get/list-search/delete/content; unit + integration)
+- [x] Upload pipeline (two-tier sniffing, 25 MB limit, Vercel Blob adapter)
+- [x] Preview renderers incl. sandboxed HTML/SVG (`/raw/[id]` per-kind CSP)
+- [x] Gallery + artifact page UI (+ publish/unlock token-gate, delete)
+- [x] REST v1 routes + integration tests (happy + failure per route)
 
 ### Phase 2 — MCP server
 Stateless Streamable HTTP endpoint; all §4.1 tools over `core/`; bearer auth; instructions field; integration tests per tool; verify from Claude Desktop against the deployed URL.
@@ -291,6 +292,11 @@ AI_DAILY_CALL_BUDGET=500    # per-feature guardrail
 | 2026-07-05 | shadcn radix/nova preset; `shadcn` kept as a dependency | `globals.css` imports `shadcn/tailwind.css`, so the `shadcn` package is a build-time CSS dep. Chose classic radix primitives over the newer Base UI. |
 | 2026-07-05 | Local DB driver = postgres.js | Deploy deferred, so local dev/tests use `postgres` (postgres.js). Swap to the Neon serverless driver at the cloud phase; `core/`/schema are driver-agnostic. |
 | 2026-07-05 | `artifacts.search_vector` via IMMUTABLE wrapper function | Inline `to_tsvector`/`array_to_string` are only STABLE, and enum columns in the table taint the inline expression → "generation expression is not immutable". `artifact_search_document()` (IMMUTABLE) is hand-maintained at the top of migration `0000`; Drizzle doesn't model functions. |
+| 2026-07-05 | Vercel Blob pulled forward; deploy un-deferred | User chose to install `@vercel/blob` in Phase 1 and test end-to-end to prod. `env.ts` unchanged (BLOB token stays required); the local-disk driver idea was dropped. Integration tests inject an in-memory `Storage` fake; local dev/preview verified via `data:`-URL seed rows. |
+| 2026-07-05 | All content served through `/raw/[id]` | Blobs are stored public+random-suffixed but never linked to clients; `/raw` re-serves bytes under a per-kind CSP so HTML/SVG stay sandboxed (CLAUDE.md invariant) and dev/prod share one serving path. |
+| 2026-07-05 | Two-tier MIME sniffing | `file-type` (magic bytes) for binaries; a content+extension classifier for text formats, which have no magic bytes. XML-declared content is deferred from tier 1 to the classifier so SVG-with-`<?xml>` isn't mislabeled `application/xml`. Sniffed type always wins over client/extension. |
+| 2026-07-05 | Syntax highlighting deferred (shiki removed) | `shiki.codeToHtml` requires `dangerouslySetInnerHTML` on artifact-derived content, violating the "never dangerouslySetInnerHTML artifact content" invariant. Text/code render as React-escaped `<pre>`; revisit later via shiki's hast→JSX renderer. |
+| 2026-07-05 | Web session = admin token in httpOnly cookie | §3.4 token-gate implemented so web publish/delete are auth-gated in Phase 1: `/unlock` sets the cookie after a constant-time compare to `ADMIN_API_TOKEN`; `/publish` and delete require it. |
 
 ## 12. Phase 0 → Phase 1 handoff
 
