@@ -7,6 +7,7 @@ export {
   EmptyContentError,
   FileTooLargeError,
 } from "./errors";
+export { type FetchedSource, fetchSourceBytes, InvalidSourceUrlError } from "./fetch-source";
 export {
   type ArtifactContent,
   getArtifact,

@@ -208,20 +208,22 @@ _(Local Phase 1 verified 2026-07-05: read/preview loop for all §2 kinds exercis
 - [x] REST v1 routes + integration tests (happy + failure per route)
 
 ### Phase 2 — MCP server
-Stateless Streamable HTTP endpoint; all §4.1 tools over `core/`; bearer auth; instructions field; integration tests per tool; verify from Claude Desktop against the deployed URL.
+Stateless Streamable HTTP endpoint; all §4.1 tools over `core/`; bearer auth; instructions field; integration tests per tool; verify from Claude Desktop against the deployed URL. Re-scoped 2026-07-06 to pull the tool-backing core forward from Phase 3 (see Decision Log): the 8 tools must wrap real `core/`, so `core/sharing` and `core/feedback` are built and unit-tested here; Phase 3 keeps the UI/flow.
 **Accept:** reviewer-style connection works remotely; conversational flow "publish this HTML → share for 72h → any feedback?" completes end-to-end.
-- [ ] Endpoint + auth
-- [ ] 8 tools + schemas + recoverable errors
-- [ ] Tool integration tests
-- [ ] Verified from Claude Desktop (remote)
+- [x] Endpoint + auth (stateless Web-standard transport; bearer verified in-route, write tools gated, reads open)
+- [x] 8 tools + schemas + recoverable errors (reusing `lib/validation`; LLM-operator descriptions)
+- [x] `core/sharing` (HMAC create/verify/revoke, constant-time) + `core/feedback` (add/list comments) + `core/stats`, with unit tests
+- [x] Tool integration tests (in-memory MCP client + direct route handler; happy + failure per tool, incl. write auth-denial)
+- [x] `scripts/smoke.ts` (`pnpm smoke`) — post-deploy MCP loop over HTTPS
+- [ ] Verified from Claude Desktop (remote) — manual, against the deployed URL
 
-### Phase 3 — Sharing & feedback
-Share-link core (sign/verify/revoke) + management UI + `/share/[token]` viewer + comments (UI, API, MCP already stubbed) + counters.
-**Accept:** link lifecycle (create → access → expire/revoke) fully tested incl. constant-time verify; external commenting works on share view.
-- [ ] core/sharing + tests
-- [ ] Share viewer + expired/revoked pages
-- [ ] Comments end-to-end
-- [ ] Link management UI
+### Phase 3 — Sharing & feedback (UI/flow)
+Re-scoped 2026-07-06: `core/sharing` (sign/verify/revoke) and `core/feedback` (comments) were built + unit-tested in Phase 2 to back the MCP tools, so Phase 3 is now UI-and-flow only — the `/share/[token]` viewer over the existing `verifyShareToken`, expired/revoked pages, the share-view comment form over `addComment`, the owner-side link-management UI (list/countdown/one-click revoke), and surfacing the access counters.
+**Accept:** link lifecycle (create → access → expire/revoke) works through the UI; external commenting works on the share view.
+- [ ] `/share/[token]` viewer + friendly expired/revoked pages (flips the smoke script's share-fetch step to a hard assertion)
+- [ ] External commenting on the share view (name + body over `core/feedback`)
+- [ ] Owner link-management UI (active links, expiry countdown, access count, one-click revoke)
+- [ ] Publish/gallery wiring for share management
 
 ### Phase 4 — AI features + observability
 `lib/ai` wrapper (telemetry, retries, fallbacks, cost map) → Feature A → Feature B (advisory-lock single-flight) → guardrails → `/admin/ai` → eval harness + golden sets + CI eval job.
@@ -286,7 +288,7 @@ AI_DAILY_CALL_BUDGET=500    # per-feature guardrail
 | (init) | Node 24 LTS, Next.js 16.x | Node 24 is active LTS (22 in maintenance); Next 16 is the active LTS line — Turbopack default, `next lint` removed (Biome covers linting) |
 | (init) | Latest MCP TS SDK, verified against installed docs | SDK is mid-transition to split `@modelcontextprotocol/server`/`client` packages; APIs must come from installed version's docs, not tutorials |
 | 2026-07-05 | Phase 0 deploy deferred | User chose to build locally first. Phase 0 exit = green locally + first migration + committed + GitHub remote created (`alireza1989/artifact-hub`, private). Production deploy (Neon/Vercel/Blob) moves to a later cloud phase. |
-| 2026-07-05 | Use stable `@modelcontextprotocol/sdk` 1.29.0 for the MCP route | Split `@modelcontextprotocol/server` is still beta (2.0.0-beta.2); prefer the boring, documented stable SDK. Re-verify against installed types at Phase 2 start. |
+| 2026-07-05 | *Select* stable `@modelcontextprotocol/sdk` 1.29.0 for the MCP route (added to the lockfile only; **not installed as a dependency** until Phase 2) | Split `@modelcontextprotocol/server` is still beta (2.0.0-beta.2); prefer the boring, documented stable SDK. Re-verify against installed types at Phase 2 start. |
 | 2026-07-05 | Zod bare `zod` import at v4.4.x | Zod 4 is now the main package line; canonical import is `zod` (verified zod.dev). `zod/v4` was the transitional subpath. CLAUDE.md convention updated to match. |
 | 2026-07-05 | Biome `noFloatingPromises` via `nursery` + type-aware scanner | Rule is nursery in Biome 2.5 and requires type info; enabled as `error` so the "no floating promises" gate is real. |
 | 2026-07-05 | shadcn radix/nova preset; `shadcn` kept as a dependency | `globals.css` imports `shadcn/tailwind.css`, so the `shadcn` package is a build-time CSS dep. Chose classic radix primitives over the newer Base UI. |
@@ -297,6 +299,9 @@ AI_DAILY_CALL_BUDGET=500    # per-feature guardrail
 | 2026-07-05 | Two-tier MIME sniffing | `file-type` (magic bytes) for binaries; a content+extension classifier for text formats, which have no magic bytes. XML-declared content is deferred from tier 1 to the classifier so SVG-with-`<?xml>` isn't mislabeled `application/xml`. Sniffed type always wins over client/extension. |
 | 2026-07-05 | Syntax highlighting deferred (shiki removed) | `shiki.codeToHtml` requires `dangerouslySetInnerHTML` on artifact-derived content, violating the "never dangerouslySetInnerHTML artifact content" invariant. Text/code render as React-escaped `<pre>`; revisit later via shiki's hast→JSX renderer. |
 | 2026-07-05 | Web session = admin token in httpOnly cookie | §3.4 token-gate implemented so web publish/delete are auth-gated in Phase 1: `/unlock` sets the cookie after a constant-time compare to `ADMIN_API_TOKEN`; `/publish` and delete require it. |
+| 2026-07-06 | Stay on `@modelcontextprotocol/sdk` 1.x stable (`1.29.0`); installed as a real dependency in Phase 2 | The split `@modelcontextprotocol/server` is still beta (`2.0.0-beta.2`, re-churned 2026-07-02) — wrong foundation under an auth-bearing endpoint. 1.29.0 is the current latest stable and now supports zod 4 (peer `^3.25 \|\| ^4.0`); pnpm resolves its zod peer to our zod 4.4.x (the zod-3 copy belongs only to shadcn's nested SDK). Uses the SDK's Web-standard Streamable HTTP transport (`Request`→`Response`), so no Node req/res bridge. **Re-evaluate when `@modelcontextprotocol/server` ships a stable 2.0.0 GA.** |
+| 2026-07-06 | Pull `core/sharing` + `core/feedback` forward into Phase 2; re-scope Phase 3 to UI/flow | The 8 MCP tools must wrap real `core/`, but sharing/feedback core were Phase-3 stubs. Built + unit-tested them (plus `core/stats`) in Phase 2 so the tools are honest wrappers, not stubs; Phase 3 now owns only the share viewer, expired/revoked pages, share-view commenting, and link-management UI. |
+| 2026-07-06 | `publish_artifact` size handling: ~3 MB inline/base64 + SSRF-guarded `sourceUrl` for up to 25 MB | Vercel caps function request bodies at 4.5 MB (confirmed current), so inline/base64 (base64 inflates ~1.37×) is capped at ~3 MB decoded with a clear error; larger binaries use an https `sourceUrl` the server streams (https-only, private/reserved-IP rejection, redirect cap, 25 MB stream cap). The 25 MB limit is unreachable via a direct function body — client-direct-to-Blob for large **web** uploads is a Phase-3/5 follow-up. |
 
 ## 12. Phase 0 → Phase 1 handoff
 

@@ -3,6 +3,13 @@
 // transport. Uses the stable @modelcontextprotocol/sdk 1.29.0 (see Decision Log).
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ToolContext } from "./auth";
+import { registerAddComment } from "./tools/add-comment";
+import { registerCreateShareLink } from "./tools/create-share-link";
+import { registerGetArtifact } from "./tools/get-artifact";
+import { registerGetFeedback } from "./tools/get-feedback";
+import { registerHubStats } from "./tools/hub-stats";
+import { registerPublishArtifact } from "./tools/publish-artifact";
+import { registerRevokeShareLink } from "./tools/revoke-share-link";
 import { registerSearchArtifacts } from "./tools/search-artifacts";
 
 // Documents the cross-tool workflow for an LLM operator (PLAN §4). Surfaced to the
@@ -35,10 +42,17 @@ export function buildServer(ctx: ToolContext): McpServer {
     { instructions: MCP_INSTRUCTIONS },
   );
 
+  // Reads (open): discovery, inspection, feedback, orientation.
   registerSearchArtifacts(server, ctx);
-  // Remaining §4.1 tools (publish_artifact, get_artifact, create_share_link,
-  // revoke_share_link, get_feedback, add_comment, hub_stats) are wired after the
-  // transport + auth + search_artifacts checkpoint review.
+  registerGetArtifact(server, ctx);
+  registerGetFeedback(server, ctx);
+  registerHubStats(server, ctx);
+  // Commenting is open too (external reviewers), so add_comment does not gate.
+  registerAddComment(server, ctx);
+  // Writes (bearer-gated): publishing and share-link lifecycle.
+  registerPublishArtifact(server, ctx);
+  registerCreateShareLink(server, ctx);
+  registerRevokeShareLink(server, ctx);
 
   return server;
 }
