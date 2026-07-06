@@ -1,14 +1,15 @@
-import { del, put } from "@vercel/blob";
+import { del, get, put } from "@vercel/blob";
 import { getEnv } from "@/lib/env";
 import type { PutResult, Storage } from "./types";
 
-// Vercel Blob backend. Blobs are public+random-suffixed (unguessable) but never
-// linked directly — /raw/[id] fetches and re-serves them under our security
-// headers, so the public URL is an internal implementation detail.
+// Vercel Blob backend, private store. Blobs require the token to read and are never
+// linked to clients — /raw/[id] fetches the bytes server-side and re-serves them
+// under our security headers (CLAUDE.md invariant). Private access hardens that: a
+// leaked blob URL is useless without the token.
 export class VercelBlobStorage implements Storage {
   async put(pathname: string, body: Uint8Array, contentType: string): Promise<PutResult> {
     const { url } = await put(pathname, Buffer.from(body), {
-      access: "public",
+      access: "private",
       addRandomSuffix: true,
       contentType,
       token: getEnv().BLOB_READ_WRITE_TOKEN,
@@ -17,11 +18,13 @@ export class VercelBlobStorage implements Storage {
   }
 
   async read(url: string): Promise<Uint8Array> {
-    const res = await fetch(url);
-    if (!res.ok) {
-      throw new Error(`Blob read failed (${res.status}) for ${url}`);
+    // Private blobs aren't publicly fetchable — read them through the SDK with the
+    // token (returns a stream on 200).
+    const result = await get(url, { access: "private", token: getEnv().BLOB_READ_WRITE_TOKEN });
+    if (result?.statusCode !== 200) {
+      throw new Error(`Blob read failed for ${url}`);
     }
-    return new Uint8Array(await res.arrayBuffer());
+    return new Uint8Array(await new Response(result.stream).arrayBuffer());
   }
 
   async delete(url: string): Promise<void> {
