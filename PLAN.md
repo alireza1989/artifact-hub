@@ -299,7 +299,7 @@ _(6.5 done 2026-07-07: `/admin` shell (h1 + client tab nav; per-page session gat
 - [x] Artifacts table: search, edit metadata (via the artifact page's editor, reusing `updateArtifactMetadata`), delete — integration tests
 - [x] Platform-wide share-link table: new paginated `core/sharing` list-all query, expiry/access-count columns, one-click revoke — integration tests (revocation was per-artifact only before)
 - [x] Comment moderation: recent-comments list + delete — new `core/feedback` moderation module + tests
-- [ ] Tag management tile (rename/merge/delete across catalog; pairs with 6.7) — **cut candidate, skipped with 6.7 unless requested**
+- [x] Tag management tile — un-cut by user request 2026-07-07 and built with 6.7 as the `/admin/tags` tab (vocabulary with usage counts + the suggest→review→apply cleanup flow)
 
 #### 6.6 Workflow friction removers (impact Med-High / effort S-M — never cut the first two)
 _(6.6 done 2026-07-07: public `/connect` page (+ "Connect" header link) with both §4.2 paths — remote-connector URL + Authorization header, and the `claude_desktop_config.json`/`mcp-remote` snippet — each with copy buttons. Token handling: snippets are built by pure `lib/mcp-snippets.ts` functions that render the `<YOUR_TEAM_TOKEN>` placeholder unless a token is explicitly passed; the page passes the real token only to an unlocked owner session, and even then it renders only after an explicit "include my token" toggle (off by default). Verified anonymously: zero token bytes in the page. Re-run AI: `regenerateMetadata` core (applies the FULL fresh suggestion + full `aiGeneratedMeta` audit → all "suggested" badges reappear; fallback/budget/error changes nothing) behind a "Re-run AI suggestions" button in the metadata editor, and `invalidateSynthesis` (drops the stored summary; the lazy single-flight path regenerates on next read — no second generation code path) behind a "Refresh summary" button; both session-gated with toasts. 10 new tests: snippet placeholder/token/JSON-shape, regenerate happy + fallback-unchanged, invalidate → v2 regeneration, action auth-denials + authed happy path. `pnpm check` + 238 tests + `pnpm build` green.)_
@@ -308,14 +308,16 @@ _(6.6 done 2026-07-07: public `/connect` page (+ "Connect" header link) with bot
 - [x] Empty states — folded into 6.1 (no separate work item)
 - Known gap left cut: large web uploads (> ~3 MB function-body cap) still can't reach 25 MB from the browser; client-direct-to-Blob remains the documented follow-up (Decision Log 2026-07-06) — not reviewer-facing polish
 
-#### 6.7 Tag normalization (impact Med / effort S — AI feature D, **first cut**)
+#### 6.7 Tag normalization (impact Med / effort S — AI feature D, un-cut by user 2026-07-07)
 Owner-triggered batch action (from the 6.5 tag tile): Haiku proposes lowercase/dedupe/merge of near-duplicate tags ("mockup"/"mockups"/"ui-mockup"); owner reviews and approves before anything mutates — never auto-applies. Guardrails + telemetry as usual; deterministic no-op fallback.
-- [ ] `core/ai/tag-normalize.ts` + prompt + tests; apply step is a plain deterministic core function
-- [ ] Approve/apply UI in the admin tag tile
+_(6.7 done 2026-07-07: `tag-normalize.v1` prompt (fenced tag list, "empty merges is a good answer") + parser with blast-radius control — every `from` tag must exist in the vocabulary the model was shown (invented sources dropped), one merge claim per tag, ≤10 merges. `core/ai/suggestTagMerges` (feature id `tag-normalize`, budget/telemetry/fallback-to-no-suggestions) proposes; `core/artifacts/applyTagMerges` is the plain deterministic transactional apply (rewrite/dedupe/TAGS_MAX cap, single-pass mapping). `/admin/tags`: vocabulary badges with counts + suggest → checkbox review (all approved by default) → apply, posting the approved subset as JSON validated by `tagMergesSchema` at the action boundary. 11 new tests: parser contracts incl. sentinel forgery, usage aggregation, merge apply/dedupe/untouched rows, stubbed suggest pipeline dropping invented tags, fallback, action auth + bad-JSON + happy path.)_
+- [x] `core/ai/tag-normalize.ts` + prompt + tests; apply step is a plain deterministic core function
+- [x] Approve/apply UI in the admin tag tile (`/admin/tags`)
 
 #### 6.8 Extras
-- [ ] **OG / social unfurl** (keep — S): `opengraph-image` + meta tags so a pasted share link unfurls with title/description/preview in chat tools — serves the core review loop directly. Must not leak beyond what the share token already grants; unfurl images for share URLs go through the token-verified path
-- [ ] Dark-mode toggle — **cut** unless slack remains (tokens already exist)
+_(6.8 done 2026-07-07: share pages get `generateMetadata` + a branded `opengraph-image` (satori card: brand mark, kind pill, title, description) — both re-verify the token with `countAccess:false` so unfurl crawlers never count as views (tested), invalid/expired tokens unfurl generically (zero leak beyond what the link grants), and `robots: noindex` keeps time-limited links out of indexes; artifact pages get plain title/description metadata. Dark mode un-cut (slack remained + next-themes already installed via sonner): `ThemeProvider` (class attribute, system default) + `ThemeToggle` in the gallery and share headers — the 6.1 dark token set was already AA-designed. OG image verified live (PNG renders for invalid token = generic card); theme is an owner manual check.)_
+- [x] **OG / social unfurl**: `opengraph-image` + meta tags via the token-verified `countAccess:false` path; no view double-count (tested); noindex
+- [x] Dark-mode toggle (slack remained; tokens from 6.1 + next-themes already present)
 
 #### 6.9 Image point-pin comments (impact Med / effort M — Tier 1)
 Click a point on an `image`-kind preview → anchor `{type:"image-point", xPct, yPct}` (same `anchor` column/schema, additive variant), rendered as numbered markers. Images only.

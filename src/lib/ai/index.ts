@@ -40,4 +40,13 @@ export {
   nlSearchJsonSchema,
   parseNlSearch,
 } from "./prompts/nl-search.v1";
+export {
+  buildTagNormalizeInstruction,
+  parseTagNormalize,
+  TAG_NORMALIZE_MAX_TOKENS,
+  TAG_NORMALIZE_PROMPT_VERSION,
+  TAG_NORMALIZE_SYSTEM,
+  type TagMergeSuggestion,
+  tagNormalizeJsonSchema,
+} from "./prompts/tag-normalize.v1";
 export { BUDGET_EXCEEDED_ERROR, type LlmOutcome } from "./telemetry";

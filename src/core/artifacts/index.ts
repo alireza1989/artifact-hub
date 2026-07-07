@@ -26,4 +26,5 @@ export {
 } from "./publish";
 export { type RegenerateMetadataResult, regenerateMetadata } from "./regenerate";
 export { type SniffInput, type SniffResult, sniffArtifact } from "./sniff";
+export { applyTagMerges, listTagUsage, type TagMerge, type TagUsage } from "./tags";
 export { updateArtifactMetadata } from "./update";

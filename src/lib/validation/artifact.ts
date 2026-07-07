@@ -95,6 +95,19 @@ export const listQuerySchema = z.object({
 });
 export type ListQuery = z.infer<typeof listQuerySchema>;
 
+// Owner-approved tag merges (Phase 6.7): the admin UI posts the approved subset
+// of AI-suggested merges as JSON; this is the boundary that validates it before
+// the deterministic applyTagMerges mutates anything.
+export const tagMergesSchema = z
+  .array(
+    z.object({
+      from: z.array(z.string().trim().min(1).max(TAG_MAX_LENGTH)).min(1).max(20),
+      to: z.string().trim().min(1).max(TAG_MAX_LENGTH),
+    }),
+  )
+  .min(1)
+  .max(10);
+
 // nanoid() default alphabet is A-Za-z0-9_- ; length 21. Keep a permissive but
 // bounded check so malformed ids fail fast at the boundary before a DB round-trip.
 export const artifactIdSchema = z.string().regex(/^[A-Za-z0-9_-]{1,64}$/, "Invalid artifact id");

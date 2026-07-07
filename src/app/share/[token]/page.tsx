@@ -1,4 +1,5 @@
 import { Clock } from "lucide-react";
+import type { Metadata } from "next";
 import { ArtifactPreview } from "@/components/artifacts/preview";
 import { numberImagePins } from "@/components/feedback/anchor-utils";
 import { AnchorComposeProvider, AnchoredPreview } from "@/components/feedback/anchors";
@@ -17,12 +18,45 @@ import { ShareState } from "./share-state";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+// Social unfurl (PLAN Phase 6.8): a pasted share link previews with title +
+// description in Slack/chat — it directly serves the share → external-review
+// loop. This re-verifies with countAccess:false so an unfurl crawler (or the
+// page's own metadata pass) never counts as a view; only the page GET counts.
+// Reveals nothing beyond what the link itself already grants, and an
+// invalid/expired token unfurls generically.
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ token: string }>;
+}): Promise<Metadata> {
+  const { token } = await params;
+  const parsed = shareTokenSchema.safeParse(token);
+  const result = parsed.success
+    ? await verifyShareToken(parsed.data, { countAccess: false })
+    : ({ ok: false } as const);
+
+  if (!result.ok) {
+    return { title: "Shared artifact — Artifact Hub", robots: { index: false } };
+  }
+  const { artifact } = result;
+  const title = `${artifact.title} — Artifact Hub`;
+  const description =
+    artifact.description ?? `A shared ${kindLabel(artifact.kind).toLowerCase()} artifact.`;
+  return {
+    title,
+    description,
+    robots: { index: false }, // time-limited private links should never be indexed
+    openGraph: { title, description, type: "article", siteName: "Artifact Hub" },
+    twitter: { card: "summary_large_image", title, description },
+  };
+}
+
 export default async function SharePage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
 
-  // Malformed tokens fail at the boundary with no DB round-trip. verifyShareToken is
-  // called exactly once per request (its default increments the access counter);
-  // no generateMetadata re-verify, which would double-count the view.
+  // Malformed tokens fail at the boundary with no DB round-trip. The page render
+  // is the ONE verify that counts the view; generateMetadata and the OG image
+  // route re-verify with countAccess:false (see above).
   const parsed = shareTokenSchema.safeParse(token);
   const result = parsed.success
     ? await verifyShareToken(parsed.data)

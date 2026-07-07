@@ -25,6 +25,26 @@ import { ShareManager } from "./share-manager";
 
 export const dynamic = "force-dynamic";
 
+// Browser-tab + unfurl metadata for gallery artifact pages (PLAN Phase 6.8).
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<{ title: string; description?: string }> {
+  const { id } = await params;
+  const parsed = artifactIdSchema.safeParse(id);
+  if (!parsed.success) return { title: "Artifact Hub" };
+  try {
+    const artifact = await getArtifact(parsed.data);
+    return {
+      title: `${artifact.title} — Artifact Hub`,
+      description: artifact.description ?? undefined,
+    };
+  } catch {
+    return { title: "Artifact Hub" };
+  }
+}
+
 function sameTags(a: string[], b: string[]): boolean {
   return a.length === b.length && a.every((tag, i) => tag === b[i]);
 }

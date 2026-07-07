@@ -9,6 +9,7 @@ const TABS = [
   { href: "/admin/artifacts", label: "Artifacts" },
   { href: "/admin/share-links", label: "Share links" },
   { href: "/admin/comments", label: "Comments" },
+  { href: "/admin/tags", label: "Tags" },
 ] as const;
 
 export function AdminNav() {
