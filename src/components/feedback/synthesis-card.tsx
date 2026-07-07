@@ -1,4 +1,6 @@
 import { Sparkles } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { FeedbackSummary } from "@/lib/validation";
 
 // AI feedback synthesis card (PLAN §5.2, §7). Each point links back to the
@@ -32,24 +34,27 @@ export function SynthesisCard({
     summary.actionItems.length === 0;
 
   return (
-    <section className="border-border bg-card space-y-4 rounded-lg border p-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <Sparkles className="text-muted-foreground size-4" />
-        <h3 className="text-sm font-semibold">Feedback summary</h3>
-        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${sentiment.className}`}>
-          {sentiment.label}
-        </span>
-        <span className="text-muted-foreground ml-auto text-xs">AI-generated · verify</span>
-      </div>
+    <Card size="sm" className="border-l-2 border-l-primary/40">
+      <CardHeader>
+        <CardTitle className="flex flex-wrap items-center gap-2">
+          <Sparkles className="text-primary size-4" />
+          Feedback summary
+          <Badge className={`border-transparent ${sentiment.className}`}>{sentiment.label}</Badge>
+          <span className="text-muted-foreground ml-auto text-xs font-normal">
+            AI-generated · verify
+          </span>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <Group title="Consensus" points={summary.consensus} authorById={authorById} />
+        <Group title="Disagreements" points={summary.disagreements} authorById={authorById} />
+        <Group title="Action items" points={summary.actionItems} authorById={authorById} />
 
-      <Group title="Consensus" points={summary.consensus} authorById={authorById} />
-      <Group title="Disagreements" points={summary.disagreements} authorById={authorById} />
-      <Group title="Action items" points={summary.actionItems} authorById={authorById} />
-
-      {empty ? (
-        <p className="text-muted-foreground text-sm">No clear themes across the comments yet.</p>
-      ) : null}
-    </section>
+        {empty ? (
+          <p className="text-muted-foreground text-sm">No clear themes across the comments yet.</p>
+        ) : null}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -65,7 +70,7 @@ function Group({
   if (points.length === 0) return null;
   return (
     <div className="space-y-1.5">
-      <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">{title}</p>
+      <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">{title}</p>
       <ul className="space-y-1.5">
         {points.map((point) => (
           <li key={`${title}-${point.point}`} className="text-sm leading-relaxed">
@@ -75,7 +80,7 @@ function Group({
                 <a
                   key={id}
                   href={`#c-${id}`}
-                  className="bg-muted text-muted-foreground hover:bg-muted/70 rounded px-1.5 py-0.5 text-[10px] no-underline"
+                  className="bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded px-1.5 py-0.5 text-[10px] no-underline transition-colors"
                 >
                   {authorById.get(id) ?? "reviewer"}
                 </a>

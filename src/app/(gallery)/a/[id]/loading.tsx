@@ -1,3 +1,5 @@
+import { Skeleton } from "@/components/ui/skeleton";
+
 // Artifact detail skeleton (PLAN §7). Mirrors the preview + metadata-sidebar
 // layout so the page doesn't jump when content arrives.
 export default function ArtifactLoading() {
@@ -7,15 +9,16 @@ export default function ArtifactLoading() {
         Loading artifact…
       </span>
       <div className="space-y-2">
-        <div className="bg-muted h-3 w-20 animate-pulse rounded" />
-        <div className="bg-muted h-8 w-2/3 animate-pulse rounded-md" />
-        <div className="bg-muted h-4 w-1/2 animate-pulse rounded" />
+        <Skeleton className="h-3 w-20" />
+        <Skeleton className="h-8 w-2/3" />
+        <Skeleton className="h-4 w-1/2" />
       </div>
-      <div className="grid gap-6 lg:grid-cols-[1fr_16rem]">
-        <div className="bg-muted h-96 animate-pulse rounded-lg" />
-        <div className="space-y-3">
-          <div className="bg-muted h-40 animate-pulse rounded-lg" />
-          <div className="bg-muted h-10 animate-pulse rounded-lg" />
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
+        <Skeleton className="h-96 rounded-xl" />
+        <div className="space-y-4">
+          <Skeleton className="h-40 rounded-xl" />
+          <Skeleton className="h-10 rounded-lg" />
+          <Skeleton className="h-32 rounded-xl" />
         </div>
       </div>
     </div>

@@ -1,24 +1,35 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { type FormState, unlockAction } from "../actions";
 
 export function UnlockForm() {
   const [state, action, pending] = useActionState<FormState, FormData>(unlockAction, {});
 
+  // Success redirects to /publish; only failures need feedback here.
+  const lastState = useRef(state);
+  useEffect(() => {
+    if (state === lastState.current) return;
+    lastState.current = state;
+    if (state.error) toast.error(state.error);
+  }, [state]);
+
   return (
     <form action={action} className="space-y-4">
-      <label className="block space-y-1">
-        <span className="text-sm font-medium">Team token</span>
-        <input
+      <div className="space-y-1">
+        <Label htmlFor="team-token">Team token</Label>
+        <Input
+          id="team-token"
           type="password"
           name="token"
           autoComplete="off"
-          className="border-border bg-background focus-visible:ring-3 focus-visible:ring-ring/50 w-full rounded-lg border px-3 py-2 text-sm outline-none"
           placeholder="Enter your team token"
         />
-      </label>
+      </div>
       {state.error ? (
         <p className="text-destructive text-sm" role="alert">
           {state.error}

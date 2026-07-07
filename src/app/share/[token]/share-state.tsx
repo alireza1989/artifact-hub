@@ -1,4 +1,5 @@
 import { Clock, LinkIcon, ShieldOff } from "lucide-react";
+import { Card } from "@/components/ui/card";
 
 type Reason = "invalid" | "expired" | "revoked";
 
@@ -33,12 +34,12 @@ const COPY: Record<Reason, { icon: typeof Clock; title: string; body: string }> 
 export function ShareState({ reason }: { reason: Reason }) {
   const { icon: Icon, title, body } = COPY[reason];
   return (
-    <div className="border-border bg-card mx-auto flex max-w-md flex-col items-center gap-3 rounded-xl border p-10 text-center">
-      <div className="bg-muted text-muted-foreground flex size-12 items-center justify-center rounded-full">
+    <Card className="mx-auto mt-10 max-w-md items-center gap-3 p-10 text-center">
+      <div className="bg-accent text-accent-foreground flex size-12 items-center justify-center rounded-full">
         <Icon className="size-6" />
       </div>
       <h1 className="text-lg font-semibold tracking-tight">{title}</h1>
       <p className="text-muted-foreground text-sm">{body}</p>
-    </div>
+    </Card>
   );
 }

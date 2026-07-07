@@ -1,8 +1,12 @@
 "use client";
 
 import { UploadCloud } from "lucide-react";
-import { useActionState, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { formatBytes } from "@/lib/format";
 import { type FormState, publishAction } from "../actions";
 
@@ -11,6 +15,15 @@ export function PublishForm() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
+
+  // Publish success redirects to the artifact page (navigation is the feedback);
+  // failures surface both inline and as a toast (Phase 6.1: every mutation).
+  const lastState = useRef(state);
+  useEffect(() => {
+    if (state === lastState.current) return;
+    lastState.current = state;
+    if (state.error) toast.error(state.error);
+  }, [state]);
 
   function adopt(files: FileList | null) {
     const file = files?.[0];
@@ -52,15 +65,21 @@ export function PublishForm() {
       }}
     >
       <label
-        className={`border-border hover:bg-muted/40 focus-within:ring-3 focus-within:ring-ring/50 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-6 py-12 text-center transition-colors ${
-          dragging ? "border-primary bg-muted/40" : ""
+        className={`border-border bg-card hover:border-primary/40 hover:bg-accent/30 focus-within:ring-3 focus-within:ring-ring/50 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-6 py-12 text-center transition-colors ${
+          dragging ? "border-primary bg-accent/40" : ""
         }`}
       >
-        <UploadCloud className="text-muted-foreground size-8" />
+        <span
+          className={`bg-accent flex size-12 items-center justify-center rounded-full transition-colors ${dragging ? "text-primary" : "text-accent-foreground"}`}
+        >
+          <UploadCloud className="size-6" />
+        </span>
         <span className="text-sm font-medium">
           {fileName ?? "Drag & drop, paste, or click to choose a file"}
         </span>
-        <span className="text-muted-foreground text-xs">Up to 4 MB · any file type</span>
+        <span className="text-muted-foreground text-xs">
+          HTML, images, PDF, Markdown, CSV, JSON… up to 4 MB
+        </span>
         <input
           ref={inputRef}
           type="file"
@@ -71,21 +90,21 @@ export function PublishForm() {
         />
       </label>
 
-      <div className="space-y-3">
-        <Field label="Title" hint="Leave blank to use the filename">
-          <input name="title" maxLength={80} className={inputClass} placeholder="Optional" />
+      <div className="space-y-4">
+        <Field id="pub-title" label="Title" hint="Blank = written for you from the content">
+          <Input id="pub-title" name="title" maxLength={80} placeholder="Optional" />
         </Field>
-        <Field label="Description">
-          <textarea
+        <Field id="pub-description" label="Description" hint="Blank = written for you">
+          <Textarea
+            id="pub-description"
             name="description"
             maxLength={280}
             rows={3}
-            className={inputClass}
             placeholder="Optional"
           />
         </Field>
-        <Field label="Tags" hint="Comma-separated, up to 5">
-          <input name="tags" className={inputClass} placeholder="e.g. design, report" />
+        <Field id="pub-tags" label="Tags" hint="Comma-separated, up to 5">
+          <Input id="pub-tags" name="tags" placeholder="e.g. design, report" />
         </Field>
       </div>
 
@@ -102,26 +121,24 @@ export function PublishForm() {
   );
 }
 
-const inputClass =
-  "border-border bg-background focus-visible:ring-3 focus-visible:ring-ring/50 w-full rounded-lg border px-3 py-2 text-sm outline-none";
-
 function Field({
+  id,
   label,
   hint,
   children,
 }: {
+  id: string;
   label: string;
   hint?: string;
   children: React.ReactNode;
 }) {
   return (
-    // biome-ignore lint/a11y/noLabelWithoutControl: the control is passed in as children.
-    <label className="block space-y-1">
-      <span className="flex items-baseline justify-between">
-        <span className="text-sm font-medium">{label}</span>
+    <div className="space-y-1">
+      <div className="flex items-baseline justify-between">
+        <Label htmlFor={id}>{label}</Label>
         {hint ? <span className="text-muted-foreground text-xs">{hint}</span> : null}
-      </span>
+      </div>
       {children}
-    </label>
+    </div>
   );
 }

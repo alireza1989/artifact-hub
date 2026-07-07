@@ -1,7 +1,12 @@
 "use client";
 
 import { Check, Copy, Link2 } from "lucide-react";
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import type { ShareLinkSummary } from "@/core/sharing";
 import { DURATION_LABEL, SHARE_DURATIONS } from "@/lib/validation";
 import { type CreateLinkState, createShareLinkAction, revokeShareLinkAction } from "../../actions";
@@ -20,57 +25,65 @@ export function ShareManager({
     {},
   );
 
+  // Mutation feedback via toast (Phase 6.1). Same effect-on-state pattern as the
+  // metadata editor: the action returns a fresh state object per dispatch.
+  const lastState = useRef(state);
+  useEffect(() => {
+    if (state === lastState.current) return;
+    lastState.current = state;
+    if (state.url) toast.success("Share link created — copy it below");
+    else if (state.error) toast.error(state.error);
+  }, [state]);
+
   return (
-    <section className="border-border bg-card space-y-4 rounded-lg border p-4">
-      <div className="flex items-center gap-2">
-        <Link2 className="text-muted-foreground size-4" />
-        <h2 className="text-sm font-semibold">Share links</h2>
-      </div>
+    <Card size="sm">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-1.5">
+          <Link2 className="text-muted-foreground size-4" /> Share links
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <form action={action} className="space-y-2">
+          <div className="flex gap-2">
+            <input type="hidden" name="id" value={artifactId} />
+            <select
+              name="duration"
+              defaultValue="24h"
+              aria-label="Link duration"
+              className="border-input bg-background h-8 flex-1 rounded-lg border px-2 text-sm transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+            >
+              {SHARE_DURATIONS.map((d) => (
+                <option key={d} value={d}>
+                  {DURATION_LABEL[d]}
+                </option>
+              ))}
+            </select>
+            <Button type="submit" disabled={pending}>
+              {pending ? "Creating…" : "Create"}
+            </Button>
+          </div>
+          {state.error ? (
+            <p className="text-destructive text-xs" role="alert">
+              {state.error}
+            </p>
+          ) : null}
+        </form>
 
-      <form action={action} className="space-y-2">
-        <div className="flex gap-2">
-          <input type="hidden" name="id" value={artifactId} />
-          <select
-            name="duration"
-            defaultValue="24h"
-            aria-label="Link duration"
-            className="border-border bg-background focus-visible:ring-3 focus-visible:ring-ring/50 flex-1 rounded-lg border px-2 py-1.5 text-sm outline-none"
-          >
-            {SHARE_DURATIONS.map((d) => (
-              <option key={d} value={d}>
-                {DURATION_LABEL[d]}
-              </option>
-            ))}
-          </select>
-          <button
-            type="submit"
-            disabled={pending}
-            className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-60"
-          >
-            {pending ? "Creating…" : "Create"}
-          </button>
-        </div>
-        {state.error ? (
-          <p className="text-destructive text-xs" role="alert">
-            {state.error}
+        {state.url ? <CreatedLink url={state.url} expiresInHuman={state.expiresInHuman} /> : null}
+
+        {links.length === 0 ? (
+          <p className="text-muted-foreground text-xs">
+            No share links yet. Create one to share this artifact outside your team.
           </p>
-        ) : null}
-      </form>
-
-      {state.url ? <CreatedLink url={state.url} expiresInHuman={state.expiresInHuman} /> : null}
-
-      {links.length === 0 ? (
-        <p className="text-muted-foreground text-xs">
-          No share links yet. Create one to share this artifact outside your team.
-        </p>
-      ) : (
-        <ul className="space-y-2">
-          {links.map((link) => (
-            <LinkRow key={link.id} artifactId={artifactId} link={link} />
-          ))}
-        </ul>
-      )}
-    </section>
+        ) : (
+          <ul className="space-y-2">
+            {links.map((link) => (
+              <LinkRow key={link.id} artifactId={artifactId} link={link} />
+            ))}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -85,25 +98,22 @@ function CreatedLink({ url, expiresInHuman }: { url: string; expiresInHuman?: st
         won’t be shown again.
       </p>
       <div className="flex items-center gap-2">
-        <input
-          readOnly
-          value={url}
-          aria-label="Share link URL"
-          className="border-border bg-background w-full rounded-md border px-2 py-1 text-xs"
-        />
-        <button
+        <Input readOnly value={url} aria-label="Share link URL" className="h-7 text-xs" />
+        <Button
           type="button"
+          variant="outline"
+          size="icon-sm"
           onClick={() => {
             void navigator.clipboard.writeText(url).then(() => {
               setCopied(true);
+              toast.success("Link copied to clipboard");
               setTimeout(() => setCopied(false), 1500);
             });
           }}
-          className="border-border hover:bg-muted shrink-0 rounded-md border p-1.5"
           aria-label="Copy link"
         >
-          {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
-        </button>
+          {copied ? <Check /> : <Copy />}
+        </Button>
       </div>
     </div>
   );
@@ -111,38 +121,35 @@ function CreatedLink({ url, expiresInHuman }: { url: string; expiresInHuman?: st
 
 function LinkRow({ artifactId, link }: { artifactId: string; link: ShareLinkSummary }) {
   const status = link.revokedAt
-    ? { label: "Revoked", tone: "text-muted-foreground" }
+    ? { label: "Revoked", active: false }
     : new Date(link.expiresAt).getTime() <= Date.now()
-      ? { label: "Expired", tone: "text-muted-foreground" }
-      : { label: "Active", tone: "text-emerald-600 dark:text-emerald-400" };
-  const active = status.label === "Active";
+      ? { label: "Expired", active: false }
+      : { label: "Active", active: true };
 
   return (
     <li className="border-border flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-xs">
-      <div className="min-w-0 space-y-0.5">
-        <p className={`font-medium ${status.tone}`}>
-          {status.label}
-          {active ? (
-            <>
-              {" · "}
+      <div className="min-w-0 space-y-1">
+        <p className="flex flex-wrap items-center gap-1.5 font-medium">
+          <Badge variant={status.active ? "default" : "secondary"} className="text-[10px]">
+            {status.label}
+          </Badge>
+          {status.active ? (
+            <span className="text-muted-foreground">
               <Countdown expiresAt={link.expiresAt} />
-            </>
+            </span>
           ) : null}
         </p>
         <p className="text-muted-foreground">
           {link.accessCount} view{link.accessCount === 1 ? "" : "s"}
         </p>
       </div>
-      {active ? (
-        <form action={revokeShareLinkAction}>
+      {status.active ? (
+        <form action={revokeShareLinkAction} onSubmit={() => toast.success("Share link revoked")}>
           <input type="hidden" name="linkId" value={link.id} />
           <input type="hidden" name="artifactId" value={artifactId} />
-          <button
-            type="submit"
-            className="text-destructive border-destructive/30 hover:bg-destructive/10 shrink-0 rounded-md border px-2 py-1 transition-colors"
-          >
+          <Button type="submit" variant="destructive" size="xs">
             Revoke
-          </button>
+          </Button>
         </form>
       ) : null}
     </li>

@@ -67,7 +67,8 @@ artifacts
 
 comments
   id, artifact_id fk (cascade), author_name text not null,
-  body text not null (1..5000 chars), created_at
+  body text not null (1..5000 chars), created_at,
+  anchor jsonb nullable                    -- Phase 6: {type:"text-quote", quote, prefix?, suffix?} — null = unanchored (all pre-Phase-6 comments)
 
 feedback_summaries
   artifact_id pk fk, summary jsonb not null,   -- {consensus[], disagreements[], action_items[], sentiment}
@@ -121,7 +122,7 @@ Single-team trust model. Write operations (publish, delete, share-link managemen
 | `create_share_link` | Time-limited link; duration as `"24h" \| "72h" \| "7d" \| "30d" \| "1h"` enum | Returns full URL + human-readable expiry |
 | `revoke_share_link` | Revoke by link id | Lists active links in error message if id unknown |
 | `get_feedback` | All comments + current AI synthesis for an artifact | Triggers synthesis refresh if stale (new comments since last run) |
-| `add_comment` | Leave a comment as a named author | Enables "reply to the design feedback" conversational flows |
+| `add_comment` | Leave a comment as a named author | Enables "reply to the design feedback" conversational flows. Phase 6: optional additive `anchor` field (text-quote) |
 | `hub_stats` | Counts by kind/tag, recent activity | Cheap situational awareness for "what's new this week?" queries |
 
 Error convention: every error result names the failure and the recovery path in one sentence.
@@ -247,7 +248,85 @@ _(Phase 5 verified 2026-07-07: `pnpm check` + `pnpm test` + `pnpm build` green; 
 - [x] Rate limiting (documented: in-memory fixed-window + honeypot accepted for v1 — see Decision Log)
 - [x] README (setup, env vars, architecture, reviewer MCP connection both paths, seeding/reset, testing/smoke)
 
-### Phase 6 — Documentation & walkthrough support
+### Phase 6 — Product polish (design, deeper AI, anchored feedback, admin, workflow)
+
+Phase 5 proved the flows; Phase 6 makes it *feel* like a product and deepens the AI without making it the point. Added 2026-07-07 (user decision); the former documentation phase is now Phase 7.
+
+**Hard constraints for every item in this phase:**
+1. **No breaking contract changes.** Existing MCP tool schemas, REST shapes, and share-link tokens stay valid as-is; all schema/tool changes are *additive optional fields only*. Old clients must keep working unchanged.
+2. **AI stays invisible** (design principle 2): no new AI buttons-as-the-point; every new AI path uses the §5.3 guardrail stack (fenced data, Zod-validated output + one retry, input caps, daily budget) and writes `llm_calls` telemetry, and always has a deterministic fallback.
+3. **Everything non-UI is provable with automated tests** (unit + integration, happy + ≥1 failure path, same bar as before). Visual/UI outcomes are verified manually on prod by the owner.
+4. Work the sub-phases roughly in the order below (6.1 → 6.8); the **cut order** if the phase must shrink is: 6.7 → 6.9 → dark-mode → admin tag tile → 6.5 remainder → 6.3. Never cut 6.1/6.2/6.4/6.6.
+
+#### 6.1 Design system pass (impact High / effort L — core, never cut)
+Adopt shadcn as the real component layer (today only `button.tsx` exists in `src/components/ui/`). Install and standardize on: card, badge, input, textarea, dialog, dropdown-menu, tabs, tooltip, separator, skeleton, table, sonner, avatar. Visual identity: wordmark, one accent color via Tailwind v4 `@theme` tokens, self-hosted type family via `next/font` (no external fetch — CSP), consistent spacing/radius scale. Rebuild gallery cards on Card/Badge; artifact page → two-column with sticky metadata sidebar, preview as hero, Tabs for preview/raw; unify skeletons via `Skeleton`; **every mutation gets sonner feedback** (systematizes the CLAUDE.md "every mutation has error feedback" rule). Guided empty states (first-publish CTA, empty-search guidance) live here, not as a separate item. Tasteful and clean, not flashy — a non-technical visitor should land and think "this is a product".
+_(6.1 done 2026-07-07: 15 shadcn components installed (card/badge/input/textarea/label/dialog/dropdown-menu/tabs/tooltip/separator/skeleton/table/sonner/avatar + button refresh); indigo-accent identity tokens in globals.css with AA-designed pairs; fixed the circular `--font-sans` var that silently dropped Geist; brand mark + wordmark in gallery/share headers; gallery cards on Card/Badge with stretched-link a11y; artifact page → 3xl title, two-column with sticky sidebar, Preview/Source tabs for HTML/SVG (source loaded server-side; "open in new tab" is safe — /raw CSP `sandbox` re-sandboxes direct navigation); every mutation now toasts via sonner (metadata save, share create/copy/revoke, comment post, publish/unlock errors); delete confirm() → Dialog; skeletons unified on Skeleton; guided empty states; admin/ai on Card/Table/Badge. `pnpm check` + 172 tests + `pnpm build` green; key routes smoke-rendered locally. Owner manual prod pass = the visual/a11y confirmation.)_
+- [x] shadcn components installed + `button.tsx`-only status ended; visual identity tokens (accent, font, radius/spacing)
+- [x] Gallery rebuilt (cards, grid rhythm, hover/focus, empty states)
+- [x] Artifact page relayout (two-column, sticky sidebar, tabs)
+- [x] Toasts on every mutation; unified skeletons
+- [x] A11y bar maintained (skip-link/landmarks/labels kept; label-for associations improved; AA contrast designed into tokens — visual re-check is the owner's manual prod pass)
+
+#### 6.2 Live gallery previews (impact High / effort M — core, never cut)
+Replace the kind-icon fallback with a real preview per kind, **without** building the cut thumbnail pipeline (no worker, no sharp, no stored thumbnail bytes, no schema change — see Decision Log 2026-07-07): HTML/SVG → existing sandboxed `/raw/[id]` iframe scaled down with `pointer-events-none`; PDF → first page via the same iframe path; markdown/text/code/CSV → rendered snippet of first lines; other → keep icon. `image` kind already previews.
+- [ ] Per-kind preview components in the gallery card (client-side render of already-served content)
+- [ ] No `/raw` sandbox/CSP regression (existing integration tests still green; add one asserting the card iframe carries the sandbox attrs)
+- [ ] Perf sanity: previews lazy (`loading="lazy"` / intersection), gallery stays responsive with seed data
+
+#### 6.3 Natural-language search (impact High / effort M — AI feature C)
+The existing search box accepts natural language ("html mockups with feedback from last week"). A Haiku call translates the query into the **structured filters search already supports** (FTS terms + kind + tags + date range) feeding the existing `core/artifacts` search — a query pre-parser, not a new retrieval system, and **not** the cut embedding search (no pgvector; see Decision Log). Same box; short/keyword queries bypass the LLM entirely; any AI failure/budget-trip falls back to raw FTS with the original string — the user never sees an error from this path. Prompt versioned in `lib/ai/prompts/` (`nl-search.v1.ts`), output schema = the existing search-filter Zod shape.
+- [ ] `core/ai/nl-search.ts` (query→filters translation, heuristic LLM-bypass for trivial queries, FTS fallback) + unit tests
+- [ ] Wired into UI search box and (additively) `search_artifacts` MCP tool via an optional `query_mode`/natural handling that changes no existing arg semantics
+- [ ] `nl-search` eval set in `tests/evals/fixtures/` (golden queries → expected filter structures; schema validity, kind/tag/date extraction, injection resistance) wired into `pnpm eval` thresholds
+- [ ] Telemetry: `llm_calls.feature = "nl_search"`, budget-capped like Features A/B
+
+#### 6.4 Anchored feedback — quote-to-comment, Tier 0 (impact High / effort M — core, never cut)
+Select text in a markdown/text/code/CSV viewer → "Comment on this" → comment stores an optional `anchor` (`{type:"text-quote", quote, prefix?, suffix?}` for re-location; column added in §3.1). Quote renders above the comment; clicking scrolls to + highlights the source; anchor that no longer matches renders gracefully as a plain quote. Text kinds only. Works on the owner artifact page **and** the share view.
+**Contract:** `anchor` is additive-optional on REST comment create and MCP `add_comment`; existing comments have `null` anchor; no existing client breaks. **Explicitly cut:** region-pins inside HTML/SVG — the `/raw` iframe is a security boundary and a postMessage coordinate channel from untrusted content is exactly the attack surface to avoid (documented future path). Image point-pins are Tier 1 / item 6.9.
+- [ ] Migration: nullable `comments.anchor` jsonb + shared Zod anchor schema in `lib/validation`
+- [ ] `core/feedback` accepts/returns anchors + unit tests (incl. null-anchor back-compat)
+- [ ] REST + MCP additive optional field + integration tests (old-shape request still succeeds)
+- [ ] Selection UI on text-kind viewers (owner page + share view) + quote rendering/highlight jump
+- [ ] Synthesis prompt may include anchor quotes as extra context (fenced as data; no schema change to summaries)
+
+#### 6.5 Admin console (impact Med-High / effort M)
+Grow `/admin` beyond `/admin/ai` into a small real console (session-gated with the existing token; all logic in `core/`, thin pages). Deliberately **skipped** for a single-team tool: audit logs, roles, per-user analytics, bulk import/export.
+- [ ] `/admin` shell + nav (ai | artifacts | share links | comments)
+- [ ] Artifacts table: search, edit metadata (reuses `updateArtifactMetadata`), delete — integration tests
+- [ ] Platform-wide share-link table: new paginated `core/sharing` list-all query, expiry/access-count columns, one-click revoke — unit + integration tests (today revocation is per-artifact only)
+- [ ] Comment moderation: recent-comments list + delete — new `core/feedback` admin list/delete + tests
+- [ ] Tag management tile (rename/merge/delete across catalog; pairs with 6.7) — **cut candidate**
+
+#### 6.6 Workflow friction removers (impact Med-High / effort S-M — never cut the first two)
+- [ ] **Copy-paste MCP config panel**: UI panel with the exact remote-connector URL and the `claude_desktop_config.json` / `mcp-remote` snippet per §4.2, copy buttons, clear token placeholder handling (never render the real token into the snippet unless the unlocked owner session explicitly reveals it)
+- [ ] **Re-run AI on an existing artifact**: owner button to regenerate metadata suggestions (same orchestration as publish; fills as editable "suggested" values via the existing `aiGeneratedMeta` badge mechanism) and to force feedback re-synthesis — both through existing guardrails/telemetry; unit + integration tests
+- [ ] Empty states — folded into 6.1 (no separate work item)
+- Known gap left cut: large web uploads (> ~3 MB function-body cap) still can't reach 25 MB from the browser; client-direct-to-Blob remains the documented follow-up (Decision Log 2026-07-06) — not reviewer-facing polish
+
+#### 6.7 Tag normalization (impact Med / effort S — AI feature D, **first cut**)
+Owner-triggered batch action (from the 6.5 tag tile): Haiku proposes lowercase/dedupe/merge of near-duplicate tags ("mockup"/"mockups"/"ui-mockup"); owner reviews and approves before anything mutates — never auto-applies. Guardrails + telemetry as usual; deterministic no-op fallback.
+- [ ] `core/ai/tag-normalize.ts` + prompt + tests; apply step is a plain deterministic core function
+- [ ] Approve/apply UI in the admin tag tile
+
+#### 6.8 Extras
+- [ ] **OG / social unfurl** (keep — S): `opengraph-image` + meta tags so a pasted share link unfurls with title/description/preview in chat tools — serves the core review loop directly. Must not leak beyond what the share token already grants; unfurl images for share URLs go through the token-verified path
+- [ ] Dark-mode toggle — **cut** unless slack remains (tokens already exist)
+
+#### 6.9 Image point-pin comments (impact Med / effort M — Tier 1, **second cut**)
+Click a point on an `image`-kind preview → anchor `{type:"image-point", x_pct, y_pct}` (same `anchor` column/schema, additive variant), rendered as numbered markers. Images only; only after 6.4 is fully green.
+- [ ] Anchor schema variant + core/REST/MCP round-trip tests
+- [ ] Pin UI on image viewer (owner + share view)
+
+**Accept (Phase 6):**
+- Fresh non-technical visitor perceives a designed product (owner manual prod pass); shadcn is the actual component layer.
+- Gallery shows real previews for HTML/SVG/PDF/markdown/text kinds with zero `/raw` sandbox/CSP regression.
+- NL search returns correctly filtered results and silently falls back to raw FTS on AI failure/budget; `pnpm eval` includes a passing `nl-search` set.
+- A text-quote-anchored comment round-trips core → REST → MCP → share view; null-anchor comments and old-shape API/MCP calls unaffected.
+- `/admin` manages artifacts, lists + revokes share links platform-wide, deletes comments — each integration-tested (happy + failure/auth path).
+- MCP-config panel and re-run-AI both work under existing guardrails/telemetry.
+- All contracts intact; `pnpm check && pnpm test && pnpm build` green; `pnpm smoke` green against production.
+
+### Phase 7 — Documentation & walkthrough support
 WRITEUP.md (decisions, cuts, architecture, MCP design, LLM usage + eval results, deployment, next steps); walkthrough script/recording checklist demonstrating the full loop including publishing an artifact *through* the MCP server.
 - [ ] WRITEUP.md
 - [ ] Walkthrough
@@ -318,6 +397,10 @@ AI_DAILY_CALL_BUDGET=500    # per-feature guardrail
 | 2026-07-07 | Seed reuses the **real core** (`sniffArtifact`, `createShareLink`) + Vercel Blob adapter, run via `tsx` | The seed must produce prod-faithful rows (blobs served through `/raw`, real signed share token), so it calls the same core the app uses rather than hand-writing inserts — single source of truth. Plain `node` can't resolve the `@/` alias in core's transitive imports (same constraint as `pnpm eval`), so `db:seed` runs under `tsx` (added as a devDependency; it honors tsconfig `paths`). Artifacts use **stable ids** so a re-run deletes+recreates exactly the demo set (idempotent); `--reset` additionally purges smoke-test noise (tag `smoke-test` / title `Smoke test …`) but never other artifacts. Binary kinds ship a self-encoded PNG (minimal RGBA encoder) and a byte-accurate one-page PDF from `src/db/seed-content.ts` — no external assets. |
 | 2026-07-07 | Post-deploy smoke wired via GitHub `deployment_status`, not a deploy step in CI | Vercel owns deploys (git integration), so CI can't "deploy then smoke" in one job. Instead `.github/workflows/smoke.yml` listens for Vercel's `deployment_status` event and runs `pnpm smoke` against `target_url` when a **Production** deploy succeeds (with a `workflow_dispatch` manual path). Needs repo secrets `ADMIN_API_TOKEN` (+ `SMOKE_BASE_URL` fallback); skips gracefully if unset. |
 | 2026-07-07 | `pnpm eval` is a separate vitest config, not a `node` script | The eval calls `src` functions whose transitive imports use the `@/` alias + directory/`.ts` resolution that plain `node` can't resolve; `vitest run --config vitest.eval.config.ts` resolves them. It stays fully separate from `pnpm test` (different config, `*.eval.ts` glob excluded from the unit/integration projects), so `pnpm test` never spends tokens. Integration tests inject a default invalid model caller in `setup.ts` so no `pnpm test` run ever hits the network. |
+| 2026-07-07 | **Phase 6 (product polish) inserted; documentation phase renumbered to 7** | User decision after Phase 5: core works but doesn't feel like a polished product. Scope, priorities, and cut order in §8 Phase 6. Constraints: no breaking MCP/REST/share contract changes (additive-optional only), AI-invisible principle held, all non-UI work automated-test-provable. |
+| 2026-07-07 | Live gallery previews via client-side render of `/raw/[id]` — **not** a thumbnail pipeline | Honors the cut-list "thumbnail generation pipeline" cut's intent (no worker, no sharp, no stored thumbnail bytes, no schema change) while replacing kind icons with real previews: the card scales down content the app already serves through the sandboxed `/raw` path (`pointer-events-none`, lazy). The cut-list future path (worker + sharp on upload) remains the answer if gallery-scale perf ever demands static thumbnails. |
+| 2026-07-07 | NL search = LLM query→filter translation over existing FTS — **not** the cut embedding search | A Haiku pre-parser maps a natural-language query onto the filter structure `core/artifacts` search already supports (FTS terms, kind, tags, date range). No embeddings, no pgvector, no new retrieval infra, so the "semantic search" cut stands. Trivial/keyword queries bypass the LLM; any failure/budget-trip falls back to raw FTS with the original string. New `nl-search` eval set gates it like Features A/B. |
+| 2026-07-07 | Anchored feedback shipped as text-quote Tier 0; HTML/SVG region-pins explicitly cut | Simplest version that's actually useful: `{type:"text-quote", quote, prefix?, suffix?}` in a nullable `comments.anchor` jsonb — additive-optional on REST/MCP, null = unanchored, no client breaks, re-location degrades gracefully to a plain quote. Region-pins inside HTML/SVG are cut because the `/raw` iframe is a security boundary: a postMessage coordinate channel from untrusted content is exactly the attack surface the sandbox exists to prevent. Image point-pins (`image-point` variant) are Tier 1, second-cut. |
 
 ## 12. Phase 0 → Phase 1 handoff
 

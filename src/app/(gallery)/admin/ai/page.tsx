@@ -1,4 +1,14 @@
 import { redirect } from "next/navigation";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { type AiWindowStats, getAiWindowStats, getRecentAiFailures } from "@/core/ai";
 import { hasValidSession } from "@/lib/auth/session";
 import { formatDate } from "@/lib/format";
@@ -31,45 +41,40 @@ export default async function AdminAiPage() {
       <section className="space-y-3">
         <h2 className="text-lg font-semibold tracking-tight">Recent failures</h2>
         {failures.length === 0 ? (
-          <p className="text-muted-foreground border-border rounded-lg border border-dashed px-4 py-6 text-center text-sm">
+          <p className="text-muted-foreground border-border rounded-xl border border-dashed px-4 py-8 text-center text-sm">
             No fallbacks or errors recorded.
           </p>
         ) : (
-          <div className="border-border overflow-x-auto rounded-lg border">
-            <table className="w-full text-left text-sm">
-              <thead className="text-muted-foreground border-border border-b text-xs uppercase">
-                <tr>
-                  <th scope="col" className="px-3 py-2 font-medium">
-                    When
-                  </th>
-                  <th scope="col" className="px-3 py-2 font-medium">
-                    Feature
-                  </th>
-                  <th scope="col" className="px-3 py-2 font-medium">
-                    Outcome
-                  </th>
-                  <th scope="col" className="px-3 py-2 font-medium">
-                    Detail
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {failures.map((f) => (
-                  <tr
-                    key={`${f.feature}-${f.createdAt.toISOString()}`}
-                    className="border-border border-b last:border-0"
-                  >
-                    <td className="text-muted-foreground whitespace-nowrap px-3 py-2">
-                      {formatDate(f.createdAt)}
-                    </td>
-                    <td className="px-3 py-2">{f.feature}</td>
-                    <td className="px-3 py-2">{f.outcome}</td>
-                    <td className="text-muted-foreground px-3 py-2">{f.error ?? "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Card className="p-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead scope="col">When</TableHead>
+                    <TableHead scope="col">Feature</TableHead>
+                    <TableHead scope="col">Outcome</TableHead>
+                    <TableHead scope="col">Detail</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {failures.map((f) => (
+                    <TableRow key={`${f.feature}-${f.createdAt.toISOString()}`}>
+                      <TableCell className="text-muted-foreground whitespace-nowrap">
+                        {formatDate(f.createdAt)}
+                      </TableCell>
+                      <TableCell>{f.feature}</TableCell>
+                      <TableCell>
+                        <Badge variant={f.outcome === "error" ? "destructive" : "secondary"}>
+                          {f.outcome}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">{f.error ?? "—"}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </Card>
         )}
       </section>
     </div>
@@ -104,18 +109,20 @@ function WindowPanel({ title, stats }: { title: string; stats: AiWindowStats }) 
 
 function Tile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="border-border bg-card rounded-lg border p-4">
-      <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">{label}</p>
-      <p className="mt-1 text-xl font-semibold tabular-nums">{value}</p>
-    </div>
+    <Card size="sm" className="gap-1">
+      <p className="text-muted-foreground px-4 text-xs font-medium tracking-wide uppercase">
+        {label}
+      </p>
+      <p className="px-4 text-xl font-semibold tabular-nums">{value}</p>
+    </Card>
   );
 }
 
 function OutcomeChip({ label, value }: { label: string; value: number }) {
   return (
-    <span className="border-border bg-muted/40 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs">
+    <Badge variant="outline" className="gap-1.5 py-1">
       <span className="text-muted-foreground">{label}</span>
       <span className="font-semibold tabular-nums">{value}</span>
-    </span>
+    </Badge>
   );
 }

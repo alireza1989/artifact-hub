@@ -1,6 +1,7 @@
 import { Clock } from "lucide-react";
 import { ArtifactPreview } from "@/components/artifacts/preview";
 import { SynthesisCard } from "@/components/feedback/synthesis-card";
+import { Badge } from "@/components/ui/badge";
 import { getFeedback } from "@/core/feedback";
 import { verifyShareToken } from "@/core/sharing";
 import { formatExpiresIn, kindLabel } from "@/lib/format";
@@ -34,31 +35,26 @@ export default async function SharePage({ params }: { params: Promise<{ token: s
 
   return (
     <div className="space-y-6">
-      <div className="space-y-1">
-        <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide">
-          {kindLabel(artifact.kind)}
-        </p>
-        <h1 className="text-2xl font-semibold tracking-tight">{artifact.title}</h1>
+      <div className="space-y-2">
+        <Badge variant="secondary">{kindLabel(artifact.kind)}</Badge>
+        <h1 className="text-3xl font-semibold tracking-tight">{artifact.title}</h1>
         {artifact.description ? (
-          <p className="text-muted-foreground max-w-2xl">{artifact.description}</p>
+          <p className="text-muted-foreground max-w-2xl leading-relaxed">{artifact.description}</p>
         ) : null}
         {artifact.tags.length > 0 ? (
           // Non-linking chips: a share visitor is external and must not be walked
           // into the gallery (unlike the owner-facing TagChip, which filters browse).
           <div className="flex flex-wrap gap-1.5 pt-1">
             {artifact.tags.map((tag) => (
-              <span
-                key={tag}
-                className="border-border bg-muted/50 text-muted-foreground inline-flex items-center rounded-full border px-2 py-0.5 text-xs"
-              >
+              <Badge key={tag} variant="outline" className="text-muted-foreground">
                 {tag}
-              </span>
+              </Badge>
             ))}
           </div>
         ) : null}
       </div>
 
-      <div className="text-muted-foreground bg-muted/40 border-border flex items-center gap-2 rounded-lg border px-3 py-2 text-sm">
+      <div className="text-accent-foreground bg-accent/50 border-accent flex items-center gap-2 rounded-lg border px-3 py-2 text-sm">
         <Clock className="size-4 shrink-0" />
         <span>This link expires {formatExpiresIn(expiresAt)}.</span>
       </div>

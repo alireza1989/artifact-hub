@@ -1,5 +1,7 @@
 import { MessageSquare } from "lucide-react";
 import Link from "next/link";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import type { ArtifactListItem } from "@/core/artifacts";
 import { formatDate, kindLabel } from "@/lib/format";
 import { KindIcon } from "./kind-icon";
@@ -7,35 +9,46 @@ import { TagChip } from "./tag-chip";
 
 export function ArtifactCard({ artifact }: { artifact: ArtifactListItem }) {
   return (
-    <Link
-      href={`/a/${artifact.id}`}
-      className="border-border bg-card hover:border-foreground/20 group flex flex-col overflow-hidden rounded-xl border transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
-    >
-      <div className="bg-muted/40 relative flex h-36 items-center justify-center overflow-hidden border-b">
+    <Card className="group relative gap-0 overflow-hidden p-0 transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md has-[a:focus-visible]:ring-3 has-[a:focus-visible]:ring-ring/50">
+      <div className="bg-muted/40 relative flex h-40 items-center justify-center overflow-hidden border-b">
         {artifact.kind === "image" ? (
           // biome-ignore lint/performance/noImgElement: artifact bytes are served via /raw, not Next-optimizable.
           <img
             src={`/raw/${artifact.id}`}
             alt=""
-            className="h-full w-full object-cover"
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
             loading="lazy"
           />
         ) : (
-          <KindIcon kind={artifact.kind} className="text-muted-foreground size-10" />
+          <KindIcon
+            kind={artifact.kind}
+            className="text-muted-foreground/70 size-10 transition-colors group-hover:text-primary/60"
+          />
         )}
-        <span className="bg-background/80 text-muted-foreground absolute top-2 left-2 rounded-md px-1.5 py-0.5 text-[0.65rem] font-medium backdrop-blur">
+        <Badge
+          variant="outline"
+          className="bg-background/85 text-muted-foreground absolute top-2.5 left-2.5 backdrop-blur"
+        >
           {kindLabel(artifact.kind)}
-        </span>
+        </Badge>
       </div>
 
       <div className="flex flex-1 flex-col gap-2 p-4">
-        <h3 className="line-clamp-1 font-medium">{artifact.title}</h3>
+        <h3 className="line-clamp-1 font-medium tracking-tight">
+          {/* Stretched link: the whole card is clickable, tags stay independently focusable. */}
+          <Link
+            href={`/a/${artifact.id}`}
+            className="outline-none after:absolute after:inset-0 after:content-['']"
+          >
+            {artifact.title}
+          </Link>
+        </h3>
         {artifact.description ? (
           <p className="text-muted-foreground line-clamp-2 text-sm">{artifact.description}</p>
         ) : null}
 
         {artifact.tags.length > 0 ? (
-          <div className="mt-auto flex flex-wrap gap-1 pt-1">
+          <div className="relative z-10 mt-auto flex w-fit flex-wrap gap-1 pt-1">
             {artifact.tags.slice(0, 3).map((tag) => (
               <TagChip key={tag} tag={tag} />
             ))}
@@ -51,6 +64,6 @@ export function ArtifactCard({ artifact }: { artifact: ArtifactListItem }) {
           ) : null}
         </div>
       </div>
-    </Link>
+    </Card>
   );
 }

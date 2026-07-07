@@ -1,7 +1,14 @@
 "use client";
 
 import { Sparkles } from "lucide-react";
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
+import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { type UpdateMetaState, updateMetadataAction } from "../../actions";
 
 // Owner-only metadata editor (PLAN §5.1). Pre-filled with the current values; any
@@ -27,74 +34,86 @@ export function MetadataEditor({
   );
   const anySuggested = suggested.title || suggested.description || suggested.tags;
 
+  // Mutation feedback via toast (Phase 6.1: every mutation gets one). useActionState
+  // returns the same state object per dispatch, so effect-on-state fires once per save.
+  const lastState = useRef(state);
+  useEffect(() => {
+    if (state === lastState.current) return;
+    lastState.current = state;
+    if (state.ok) toast.success("Details saved");
+    else if (state.error) toast.error(state.error);
+  }, [state]);
+
   return (
-    <form action={action} className="border-border bg-card space-y-3 rounded-lg border p-4">
-      <p className="text-sm font-semibold">
-        {anySuggested ? "Review AI suggestions" : "Edit details"}
-      </p>
-      <input type="hidden" name="id" value={artifactId} />
+    <Card size="sm">
+      <CardHeader>
+        <CardTitle>{anySuggested ? "Review AI suggestions" : "Edit details"}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form action={action} className="space-y-3">
+          <input type="hidden" name="id" value={artifactId} />
 
-      <Field label="Title" suggested={suggested.title}>
-        <input name="title" defaultValue={title} maxLength={80} className={inputClass} />
-      </Field>
-      <Field label="Description" suggested={suggested.description}>
-        <textarea
-          name="description"
-          defaultValue={description}
-          maxLength={280}
-          rows={3}
-          className={inputClass}
-        />
-      </Field>
-      <Field label="Tags" suggested={suggested.tags} hint="Comma-separated, up to 5">
-        <input name="tags" defaultValue={tags.join(", ")} className={inputClass} />
-      </Field>
+          <Field id="meta-title" label="Title" suggested={suggested.title}>
+            <Input id="meta-title" name="title" defaultValue={title} maxLength={80} />
+          </Field>
+          <Field id="meta-description" label="Description" suggested={suggested.description}>
+            <Textarea
+              id="meta-description"
+              name="description"
+              defaultValue={description}
+              maxLength={280}
+              rows={3}
+            />
+          </Field>
+          <Field
+            id="meta-tags"
+            label="Tags"
+            suggested={suggested.tags}
+            hint="Comma-separated, up to 5"
+          >
+            <Input id="meta-tags" name="tags" defaultValue={tags.join(", ")} />
+          </Field>
 
-      {state.error ? (
-        <p className="text-destructive text-sm" role="alert">
-          {state.error}
-        </p>
-      ) : null}
-      {state.ok ? <p className="text-xs text-emerald-600 dark:text-emerald-400">Saved.</p> : null}
+          {state.error ? (
+            <p className="text-destructive text-sm" role="alert">
+              {state.error}
+            </p>
+          ) : null}
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="bg-primary text-primary-foreground hover:bg-primary/90 w-full rounded-lg px-3 py-2 text-sm font-medium transition-colors disabled:opacity-60"
-      >
-        {pending ? "Saving…" : "Save details"}
-      </button>
-    </form>
+          <Button type="submit" disabled={pending} className="w-full">
+            {pending ? "Saving…" : "Save details"}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
   );
 }
 
 function Field({
+  id,
   label,
   suggested,
   hint,
   children,
 }: {
+  id: string;
   label: string;
   suggested: boolean;
   hint?: string;
   children: React.ReactNode;
 }) {
   return (
-    // biome-ignore lint/a11y/noLabelWithoutControl: the control is passed in as children.
-    <label className="block space-y-1">
-      <span className="flex items-center gap-1.5">
-        <span className="text-sm font-medium">{label}</span>
+    <div className="space-y-1">
+      <div className="flex items-center gap-1.5">
+        <Label htmlFor={id}>{label}</Label>
         {suggested ? (
-          <span className="bg-primary/10 text-primary inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium">
+          <Badge variant="secondary" className="text-primary gap-0.5 text-[10px]">
             <Sparkles className="size-2.5" /> suggested
-          </span>
+          </Badge>
         ) : null}
         {hint ? <span className="text-muted-foreground ml-auto text-xs">{hint}</span> : null}
-      </span>
+      </div>
       {children}
-    </label>
+    </div>
   );
 }
-
-const inputClass =
-  "border-border bg-background focus-visible:ring-3 focus-visible:ring-ring/50 w-full rounded-lg border px-3 py-2 text-sm outline-none";

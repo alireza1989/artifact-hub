@@ -1,5 +1,6 @@
 import { Plus } from "lucide-react";
 import Link from "next/link";
+import { Wordmark } from "@/components/brand/wordmark";
 import { Button } from "@/components/ui/button";
 
 // Shared chrome for browse / detail / publish (all in the gallery route group).
@@ -19,9 +20,9 @@ export default function GalleryLayout({ children }: { children: React.ReactNode 
         >
           <Link
             href="/"
-            className="rounded-sm font-semibold tracking-tight focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+            className="rounded-sm focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
           >
-            Artifact Hub
+            <Wordmark />
           </Link>
           <Button asChild size="sm">
             <Link href="/publish">
