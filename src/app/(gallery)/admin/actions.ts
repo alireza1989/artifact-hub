@@ -8,7 +8,7 @@ import { CommentNotFoundError, deleteComment } from "@/core/feedback";
 import { revokeShareLink, ShareLinkNotFoundError } from "@/core/sharing";
 import { hasValidSession } from "@/lib/auth/session";
 import { logger } from "@/lib/logger";
-import { artifactIdSchema, tagMergesSchema } from "@/lib/validation";
+import { artifactIdSchema, entityIdSchema, tagMergesSchema } from "@/lib/validation";
 
 // Admin-console mutations (PLAN Phase 6.5). Session-gated before any core call,
 // like every other write. Already-gone targets are idempotent successes — the
@@ -32,7 +32,11 @@ export async function adminDeleteArtifactAction(formData: FormData): Promise<voi
 
 export async function adminRevokeShareLinkAction(formData: FormData): Promise<void> {
   if (!(await hasValidSession())) redirect("/unlock");
-  const linkId = String(formData.get("linkId") ?? "");
+  // Boundary validation; a malformed id gets the same idempotent treatment as an
+  // unknown one (the goal state — no such active link — already holds).
+  const parsed = entityIdSchema.safeParse(String(formData.get("linkId") ?? ""));
+  if (!parsed.success) return;
+  const linkId = parsed.data;
   try {
     await revokeShareLink(linkId);
   } catch (error) {
@@ -46,7 +50,9 @@ export async function adminRevokeShareLinkAction(formData: FormData): Promise<vo
 
 export async function adminDeleteCommentAction(formData: FormData): Promise<void> {
   if (!(await hasValidSession())) redirect("/unlock");
-  const commentId = String(formData.get("commentId") ?? "");
+  const parsed = entityIdSchema.safeParse(String(formData.get("commentId") ?? ""));
+  if (!parsed.success) return;
+  const commentId = parsed.data;
   try {
     await deleteComment(commentId);
   } catch (error) {

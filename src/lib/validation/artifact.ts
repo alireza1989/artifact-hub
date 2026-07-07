@@ -111,3 +111,15 @@ export const tagMergesSchema = z
 // nanoid() default alphabet is A-Za-z0-9_- ; length 21. Keep a permissive but
 // bounded check so malformed ids fail fast at the boundary before a DB round-trip.
 export const artifactIdSchema = z.string().regex(/^[A-Za-z0-9_-]{1,64}$/, "Invalid artifact id");
+
+// Same shape for every other app-generated id (share links, comments — one
+// nanoid generator). Boundary validation for admin actions and the like.
+export const entityIdSchema = z.string().regex(/^[A-Za-z0-9_-]{1,64}$/, "Invalid id");
+
+// Lenient pagination offset for URL-driven pages: any garbage (NaN, Infinity,
+// negatives, 1e999) clamps to 0 instead of reaching the DB (CLAUDE.md: every
+// external input validated at the boundary).
+export const pageOffsetSchema = z.preprocess(
+  blank,
+  z.coerce.number().int().min(0).max(1_000_000).catch(0).default(0),
+);

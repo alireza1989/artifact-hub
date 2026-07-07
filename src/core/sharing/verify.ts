@@ -2,6 +2,7 @@ import { eq, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import type { Artifact } from "@/db/schema";
 import { artifacts, shareLinks } from "@/db/schema";
+import { logger } from "@/lib/logger";
 import { hashToken, parseToken, verifySignature } from "./token";
 
 export type ShareVerifyResult =
@@ -23,8 +24,15 @@ export async function verifyShareToken(
   token: string,
   { countAccess = true }: VerifyShareTokenOptions = {},
 ): Promise<ShareVerifyResult> {
+  // Debug-level failure logging (hidden at prod's default info level; flip
+  // LOG_LEVEL=debug to diagnose "my link doesn't work"). Only the failure
+  // reason and the non-secret link id are logged — NEVER the token or its hash
+  // (CLAUDE.md invariant: never log full tokens).
   const parsed = parseToken(token);
-  if (!parsed) return { ok: false, reason: "invalid" };
+  if (!parsed) {
+    logger.debug({ reason: "malformed" }, "share token rejected");
+    return { ok: false, reason: "invalid" };
+  }
 
   const db = getDb();
   const [row] = await db
@@ -32,12 +40,25 @@ export async function verifyShareToken(
     .from(shareLinks)
     .where(eq(shareLinks.tokenHash, hashToken(token)))
     .limit(1);
-  if (!row || row.id !== parsed.linkId) return { ok: false, reason: "invalid" };
-  if (!verifySignature(parsed.linkId, row.expiresAt.getTime(), parsed.signature)) {
+  if (!row || row.id !== parsed.linkId) {
+    logger.debug(
+      { reason: "unknown-or-mismatched", linkId: parsed.linkId },
+      "share token rejected",
+    );
     return { ok: false, reason: "invalid" };
   }
-  if (row.revokedAt) return { ok: false, reason: "revoked" };
-  if (row.expiresAt.getTime() <= Date.now()) return { ok: false, reason: "expired" };
+  if (!verifySignature(parsed.linkId, row.expiresAt.getTime(), parsed.signature)) {
+    logger.debug({ reason: "bad-signature", linkId: parsed.linkId }, "share token rejected");
+    return { ok: false, reason: "invalid" };
+  }
+  if (row.revokedAt) {
+    logger.debug({ reason: "revoked", linkId: row.id }, "share token rejected");
+    return { ok: false, reason: "revoked" };
+  }
+  if (row.expiresAt.getTime() <= Date.now()) {
+    logger.debug({ reason: "expired", linkId: row.id }, "share token rejected");
+    return { ok: false, reason: "expired" };
+  }
 
   if (countAccess) {
     await db

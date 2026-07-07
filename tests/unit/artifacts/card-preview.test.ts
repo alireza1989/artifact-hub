@@ -52,10 +52,11 @@ async function render(kind: Artifact["kind"]): Promise<unknown> {
 }
 
 describe("CardPreview sandboxing and inertness", () => {
-  it("renders HTML in an iframe with a script-permitting sandbox, inert and lazy", async () => {
+  it("renders HTML cards in a SCRIPT-FREE sandbox (execution is opt-in on the detail page)", async () => {
     const iframe = findByTag(await render("html"), "iframe");
     expect(iframe).toBeDefined();
-    expect(iframe?.props.sandbox).toBe("allow-scripts");
+    // sandbox="" — a gallery page auto-loads many cards; none may run script.
+    expect(iframe?.props.sandbox).toBe("");
     expect(iframe?.props.loading).toBe("lazy");
     expect(iframe?.props.tabIndex).toBe(-1);
     expect(iframe?.props["aria-hidden"]).toBe("true");

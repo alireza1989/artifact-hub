@@ -136,6 +136,78 @@ describe("invalidateSynthesis (core)", () => {
   });
 });
 
+describe("regenerateSynthesis (core — safe refresh, review 2026-07-07)", () => {
+  it("replaces the summary on success, keeps the old one on model failure", async () => {
+    const { artifact } = await publishArtifact({
+      bytes: enc("# Safe refresh"),
+      filename: "s.md",
+      source: "api",
+      metadata: { title: "Safe refresh", tags: ["t"] },
+    });
+    await addComment({ artifactId: artifact.id, authorName: "A", body: "great" });
+    await addComment({ artifactId: artifact.id, authorName: "B", body: "love it" });
+
+    setModelCallerForTesting(synthesisCaller("original"));
+    expect((await getFeedback(artifact.id)).summary?.consensus[0]?.point).toBe("original");
+
+    // Failure path: default-invalid model output → regenerate reports false and
+    // the ORIGINAL summary survives (the old delete-then-lazy flow destroyed it).
+    const { regenerateSynthesis } = await import("@/core/ai");
+    const { resetModelCaller } = await import("@/lib/ai");
+    resetModelCaller();
+    const { setModelCallerForTesting: set } = await import("@/lib/ai");
+    set(async () => ({
+      text: "not json",
+      inputTokens: 1,
+      outputTokens: 1,
+      stopReason: "end_turn",
+    }));
+    expect(await regenerateSynthesis(artifact.id)).toBe(false);
+    expect((await getFeedback(artifact.id)).summary?.consensus[0]?.point).toBe("original");
+
+    // Success path: fresh summary replaces the stored one.
+    setModelCallerForTesting(synthesisCaller("refreshed"));
+    expect(await regenerateSynthesis(artifact.id)).toBe(true);
+    expect((await getFeedback(artifact.id)).summary?.consensus[0]?.point).toBe("refreshed");
+  });
+
+  it("passes anchored-comment quotes through to the model prompt (was silently dropped)", async () => {
+    const { artifact } = await publishArtifact({
+      bytes: enc("# Anchored"),
+      filename: "an.md",
+      source: "api",
+      metadata: { title: "Anchored", tags: ["t"] },
+    });
+    await addComment({
+      artifactId: artifact.id,
+      authorName: "A",
+      body: "too small",
+      anchor: { type: "text-quote", quote: "The header is tiny" },
+    });
+    await addComment({ artifactId: artifact.id, authorName: "B", body: "agree" });
+
+    let seenInstruction = "";
+    setModelCallerForTesting(async (input) => {
+      const text = input.content.find((c) => c.type === "text");
+      seenInstruction = text && "text" in text ? text.text : "";
+      const id = /\[id: ([^\]]+)\]/.exec(seenInstruction)?.[1] ?? "c1";
+      return {
+        text: JSON.stringify({
+          consensus: [{ point: "p", commentIds: [id] }],
+          disagreements: [],
+          actionItems: [],
+          sentiment: "positive",
+        }),
+        inputTokens: 1,
+        outputTokens: 1,
+        stopReason: "end_turn",
+      };
+    });
+    await getFeedback(artifact.id);
+    expect(seenInstruction).toContain('(about the passage: "The header is tiny")');
+  });
+});
+
 describe("re-run actions (session gates)", () => {
   it("regenerate action reports failure without a session", async () => {
     sessionState.valid = false;

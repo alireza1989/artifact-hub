@@ -35,12 +35,15 @@ export async function CardPreview({ artifact }: { artifact: CardArtifact }) {
           loading="lazy"
         />
       );
-    // HTML keeps the sandboxed live iframe (scripts allowed, network blocked by
-    // /raw's CSP). SVG renders via <img> — script-inert by spec and free of the
-    // extension-injection console noise an empty-sandbox iframe attracts (PLAN
-    // Decision Log 2026-07-07).
+    // HTML cards render in a SCRIPT-FREE sandbox (sandbox=""): a gallery page
+    // auto-instantiates up to a page of these, and one hostile/heavy artifact
+    // must not be able to run script in every browsing visitor's tab — the
+    // artifact DETAIL page is the deliberate execution surface (allow-scripts
+    // there, network still blocked by /raw's CSP). Script-driven artifacts show
+    // their static markup here. SVG renders via <img> — script-inert by spec
+    // (PLAN Decision Log 2026-07-07).
     case "html":
-      return <ScaledFrame src={raw} sandbox="allow-scripts" />;
+      return <ScaledFrame src={raw} sandbox="" />;
     case "svg":
       return (
         // biome-ignore lint/performance/noImgElement: artifact bytes are served via /raw, not Next-optimizable.

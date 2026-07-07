@@ -15,7 +15,7 @@ export async function GET(req: Request): Promise<NextResponse> {
     const result = await listArtifacts(listQuerySchema.parse(params));
     return NextResponse.json(result);
   } catch (error) {
-    return toErrorResponse(error);
+    return toErrorResponse(error, { route: "GET /api/v1/artifacts" });
   }
 }
 
@@ -29,6 +29,8 @@ export async function POST(req: Request): Promise<NextResponse> {
     const { artifact, aiFilled } = await publishArtifact({ ...parsed, source: "api" });
     return NextResponse.json({ ...artifact, aiFilled }, { status: 201 });
   } catch (error) {
-    return toErrorResponse(error);
+    // Context is route + nothing else: publish bodies carry user content, which
+    // never belongs in a log line.
+    return toErrorResponse(error, { route: "POST /api/v1/artifacts" });
   }
 }

@@ -16,8 +16,12 @@ const INDIGO = "#4f52d9";
 const INK = "#16181f";
 const MUTED = "#5b5f6e";
 
-export default async function OpengraphImage({ params }: { params: { token: string } }) {
-  const parsed = shareTokenSchema.safeParse(params.token);
+export default async function OpengraphImage({ params }: { params: Promise<{ token: string }> }) {
+  // params is a Promise in Next 15+ metadata image routes too — reading
+  // `.token` synchronously yields undefined and every unfurl goes generic
+  // (caught in review 2026-07-07; the invalid-token smoke test masked it).
+  const { token } = await params;
+  const parsed = shareTokenSchema.safeParse(token);
   const result = parsed.success
     ? await verifyShareToken(parsed.data, { countAccess: false })
     : ({ ok: false } as const);

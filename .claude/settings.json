@@ -112,7 +112,15 @@
       "Bash(echo \"check: $?\")",
       "Bash(python3 -c ' *)",
       "Bash(echo \"md lint: $?\")",
-      "Bash(echo \"exit: $?\")"
+      "Bash(echo \"exit: $?\")",
+      "Skill(code-review)",
+      "Skill(code-review:*)",
+      "mcp__artifact-hub__hub_stats",
+      "Bash(python3 -)",
+      "mcp__artifact-hub__publish_artifact",
+      "mcp__artifact-hub__add_comment",
+      "mcp__artifact-hub__create_share_link",
+      "mcp__artifact-hub__get_feedback"
     ],
     "deny": [
       "Read(.env)",

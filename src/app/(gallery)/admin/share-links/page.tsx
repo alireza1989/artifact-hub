@@ -13,6 +13,7 @@ import {
 import { listAllShareLinks, type PlatformShareLink } from "@/core/sharing";
 import { hasValidSession } from "@/lib/auth/session";
 import { formatDate, formatExpiresIn } from "@/lib/format";
+import { pageOffsetSchema } from "@/lib/validation";
 import { adminRevokeShareLinkAction } from "../actions";
 import { ConfirmActionButton } from "../confirm-action-button";
 import { AdminPagination } from "../pagination";
@@ -39,7 +40,7 @@ export default async function AdminShareLinksPage({
 }) {
   if (!(await hasValidSession())) redirect("/unlock");
   const sp = await searchParams;
-  const offset = Math.max(0, Number(first(sp.offset)) || 0);
+  const offset = pageOffsetSchema.parse(first(sp.offset)) as number;
   const { items, total, limit } = await listAllShareLinks({ limit: PAGE_SIZE, offset });
 
   return (

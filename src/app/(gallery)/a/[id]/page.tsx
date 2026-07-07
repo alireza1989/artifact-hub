@@ -1,5 +1,6 @@
 import { Download, ExternalLink, RefreshCw } from "lucide-react";
 import { notFound } from "next/navigation";
+import { cache, Suspense } from "react";
 import { ArtifactPreview } from "@/components/artifacts/preview";
 import { CodeView } from "@/components/artifacts/preview/code-view";
 import { TagChip } from "@/components/artifacts/tag-chip";
@@ -25,6 +26,10 @@ import { ShareManager } from "./share-manager";
 
 export const dynamic = "force-dynamic";
 
+// Per-request memo: generateMetadata and the page body both need the artifact —
+// one Postgres round-trip instead of two on every view of the hottest page.
+const getArtifactCached = cache(getArtifact);
+
 // Browser-tab + unfurl metadata for gallery artifact pages (PLAN Phase 6.8).
 export async function generateMetadata({
   params,
@@ -35,7 +40,7 @@ export async function generateMetadata({
   const parsed = artifactIdSchema.safeParse(id);
   if (!parsed.success) return { title: "Artifact Hub" };
   try {
-    const artifact = await getArtifact(parsed.data);
+    const artifact = await getArtifactCached(parsed.data);
     return {
       title: `${artifact.title} — Artifact Hub`,
       description: artifact.description ?? undefined,
@@ -59,7 +64,7 @@ export default async function ArtifactPage({ params }: { params: Promise<{ id: s
 
   let artifact: Awaited<ReturnType<typeof getArtifact>>;
   try {
-    artifact = await getArtifact(artifactIdSchema.parse(id));
+    artifact = await getArtifactCached(artifactIdSchema.parse(id));
   } catch (error) {
     if (error instanceof ArtifactNotFoundError) notFound();
     throw error;
@@ -182,14 +187,10 @@ export default async function ArtifactPage({ params }: { params: Promise<{ id: s
 // Preview hero. HTML/SVG additionally get a Source tab (their sandboxed-iframe
 // preview otherwise hides the markup from reviewers) and an open-in-new-tab
 // escape hatch pointing at the same sandboxed /raw path.
-async function PreviewArea({ artifact }: { artifact: Awaited<ReturnType<typeof getArtifact>> }) {
+function PreviewArea({ artifact }: { artifact: Awaited<ReturnType<typeof getArtifact>> }) {
   if (!SOURCE_TAB_KINDS.has(artifact.kind)) {
     return <ArtifactPreview artifact={artifact} />;
   }
-
-  const { bytes } = await getArtifactContent(artifact.id);
-  const truncated = bytes.length > SOURCE_TEXT_LIMIT;
-  const source = new TextDecoder().decode(truncated ? bytes.subarray(0, SOURCE_TEXT_LIMIT) : bytes);
 
   return (
     <Tabs defaultValue="preview">
@@ -208,10 +209,21 @@ async function PreviewArea({ artifact }: { artifact: Awaited<ReturnType<typeof g
         <ArtifactPreview artifact={artifact} />
       </TabsContent>
       <TabsContent value="source">
-        <CodeView code={source} truncated={truncated} />
+        {/* Own Suspense boundary: the blob read streams in behind the (hidden)
+            tab instead of blocking the whole page render (review 2026-07-07). */}
+        <Suspense fallback={<div className="bg-muted h-64 animate-pulse rounded-lg" />}>
+          <SourceView id={artifact.id} />
+        </Suspense>
       </TabsContent>
     </Tabs>
   );
+}
+
+async function SourceView({ id }: { id: string }) {
+  const { bytes } = await getArtifactContent(id);
+  const truncated = bytes.length > SOURCE_TEXT_LIMIT;
+  const source = new TextDecoder().decode(truncated ? bytes.subarray(0, SOURCE_TEXT_LIMIT) : bytes);
+  return <CodeView code={source} truncated={truncated} />;
 }
 
 function Meta({ label, value }: { label: string; value: string }) {

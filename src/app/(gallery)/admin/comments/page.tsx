@@ -12,6 +12,7 @@ import {
 import { listRecentComments } from "@/core/feedback";
 import { hasValidSession } from "@/lib/auth/session";
 import { formatDate } from "@/lib/format";
+import { pageOffsetSchema } from "@/lib/validation";
 import { adminDeleteCommentAction } from "../actions";
 import { ConfirmActionButton } from "../confirm-action-button";
 import { AdminPagination } from "../pagination";
@@ -32,7 +33,7 @@ export default async function AdminCommentsPage({
 }) {
   if (!(await hasValidSession())) redirect("/unlock");
   const sp = await searchParams;
-  const offset = Math.max(0, Number(first(sp.offset)) || 0);
+  const offset = pageOffsetSchema.parse(first(sp.offset)) as number;
   const { items, total, limit } = await listRecentComments({ limit: PAGE_SIZE, offset });
 
   return (

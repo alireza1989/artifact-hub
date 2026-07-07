@@ -11,22 +11,22 @@ type Ctx = { params: Promise<{ id: string }> };
 
 // GET /api/v1/artifacts/:id — full metadata. Open read.
 export async function GET(_req: Request, { params }: Ctx): Promise<NextResponse> {
+  const { id } = await params;
   try {
-    const id = artifactIdSchema.parse((await params).id);
-    return NextResponse.json(await getArtifact(id));
+    return NextResponse.json(await getArtifact(artifactIdSchema.parse(id)));
   } catch (error) {
-    return toErrorResponse(error);
+    return toErrorResponse(error, { route: "GET /api/v1/artifacts/:id", id });
   }
 }
 
 // DELETE /api/v1/artifacts/:id — bearer-authenticated write.
 export async function DELETE(req: Request, { params }: Ctx): Promise<NextResponse> {
   if (!isAuthorized(req)) return unauthorized();
+  const { id } = await params;
   try {
-    const id = artifactIdSchema.parse((await params).id);
-    await deleteArtifact(id);
+    await deleteArtifact(artifactIdSchema.parse(id));
     return new NextResponse(null, { status: 204 });
   } catch (error) {
-    return toErrorResponse(error);
+    return toErrorResponse(error, { route: "DELETE /api/v1/artifacts/:id", id });
   }
 }

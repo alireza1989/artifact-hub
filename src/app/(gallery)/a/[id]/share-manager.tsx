@@ -104,11 +104,16 @@ function CreatedLink({ url, expiresInHuman }: { url: string; expiresInHuman?: st
           variant="outline"
           size="icon-sm"
           onClick={() => {
-            void navigator.clipboard.writeText(url).then(() => {
-              setCopied(true);
-              toast.success("Link copied to clipboard");
-              setTimeout(() => setCopied(false), 1500);
-            });
+            navigator.clipboard.writeText(url).then(
+              () => {
+                setCopied(true);
+                toast.success("Link copied to clipboard");
+                setTimeout(() => setCopied(false), 1500);
+              },
+              // The URL is unrecoverable after navigation — a silent copy
+              // failure here would lose the link, so surface it.
+              () => toast.error("Couldn't copy — select the link text and copy manually"),
+            );
           }}
           aria-label="Copy link"
         >
@@ -144,7 +149,14 @@ function LinkRow({ artifactId, link }: { artifactId: string; link: ShareLinkSumm
         </p>
       </div>
       {status.active ? (
-        <form action={revokeShareLinkAction} onSubmit={() => toast.success("Share link revoked")}>
+        // Toast fires AFTER the action resolves — a premature onSubmit toast
+        // reported success even when the session had expired (review 2026-07-07).
+        <form
+          action={async (formData) => {
+            await revokeShareLinkAction(formData);
+            toast.success("Share link revoked");
+          }}
+        >
           <input type="hidden" name="linkId" value={link.id} />
           <input type="hidden" name="artifactId" value={artifactId} />
           <Button type="submit" variant="destructive" size="xs">

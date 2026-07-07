@@ -30,10 +30,23 @@ export function looksNaturalQuery(q: string): boolean {
   return q.trim().split(/\s+/).length >= NATURAL_MIN_WORDS;
 }
 
+// Per-instance memo of successful translations. Two jobs (review 2026-07-07):
+// pagination consistency — page 2 of a natural search must use the SAME filters
+// as page 1, not a fresh (possibly different or failed) translation — and not
+// paying for an identical LLM call on every Next click. Successful translations
+// only (a transient failure should be retried); bounded FIFO; per serverless
+// instance, which is exactly the scope a paginating user session lives in.
+const translationMemo = new Map<string, NlSearchFilters>();
+const MEMO_MAX = 200;
+
 // Translate one query string via the schema-validated wrapper. Returns null when
 // the model produced nothing usable (caller keeps the original query). Exported
 // separately so the eval harness can score translation quality without a DB.
 export async function translateNlQuery(q: string): Promise<NlSearchFilters | null> {
+  const key = q.trim().toLowerCase();
+  const cached = translationMemo.get(key);
+  if (cached) return cached;
+
   const result = await runFeature({
     feature: "nl-search",
     promptVersion: NL_SEARCH_PROMPT_VERSION,
@@ -45,7 +58,14 @@ export async function translateNlQuery(q: string): Promise<NlSearchFilters | nul
     maxTokens: NL_SEARCH_MAX_TOKENS,
     artifactId: null,
   });
-  return result.usedAi ? result.value : null;
+  if (!result.usedAi || result.value === null) return null;
+
+  if (translationMemo.size >= MEMO_MAX) {
+    const oldest = translationMemo.keys().next().value;
+    if (oldest !== undefined) translationMemo.delete(oldest);
+  }
+  translationMemo.set(key, result.value);
+  return result.value;
 }
 
 // Merge translated filters into the parsed query. Pure and unit-tested. Explicit

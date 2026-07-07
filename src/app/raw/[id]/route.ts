@@ -69,9 +69,9 @@ function contentTypeHeader(artifact: Artifact): string {
 // GET /raw/:id — serves artifact bytes under the security headers above. Used as
 // the src for sandboxed HTML/SVG iframes, <img>/<embed> sources, and downloads.
 export async function GET(req: Request, { params }: Ctx): Promise<NextResponse> {
+  const { id } = await params;
   try {
-    const id = artifactIdSchema.parse((await params).id);
-    const { artifact, bytes } = await getArtifactContent(id);
+    const { artifact, bytes } = await getArtifactContent(artifactIdSchema.parse(id));
     const download = new URL(req.url).searchParams.has("download");
 
     const headers = new Headers({
@@ -87,6 +87,8 @@ export async function GET(req: Request, { params }: Ctx): Promise<NextResponse> 
     if (error instanceof ArtifactNotFoundError) {
       return new NextResponse("Artifact not found", { status: 404 });
     }
-    return toErrorResponse(error);
+    // Blob-read failures surface here; the artifact id is the key debugging
+    // handle (which row's blob_url is bad) and leaks nothing.
+    return toErrorResponse(error, { route: "GET /raw/:id", id });
   }
 }

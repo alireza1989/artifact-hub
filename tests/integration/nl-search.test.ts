@@ -105,6 +105,26 @@ describe("searchArtifactsNaturally", () => {
     expect(result.items.map((i) => i.title)).toContain("Pricing page mockup");
   });
 
+  it("memoizes successful translations — page 2 uses page 1's filters, no second model call", async () => {
+    const { html } = await seedCatalog();
+    let calls = 0;
+    setModelCallerForTesting(async () => {
+      calls += 1;
+      return {
+        text: JSON.stringify({ terms: "", kind: "html", tags: [], since_days: null }),
+        inputTokens: 1,
+        outputTokens: 1,
+        stopReason: "end_turn",
+      };
+    });
+    const q = "unique memo query for the mockups we made";
+    const page1 = await searchArtifactsNaturally(parse({ q }));
+    const page2 = await searchArtifactsNaturally(parse({ q, offset: 24 }));
+    expect(calls).toBe(1); // second request served from the per-instance memo
+    expect(page1.items.map((i) => i.id)).toEqual([html.id]);
+    expect(page2.total).toBe(page1.total);
+  });
+
   it("never overrides an explicit kind filter", async () => {
     await seedCatalog();
     setModelCallerForTesting(

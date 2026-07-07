@@ -3,6 +3,7 @@ import { drizzle as drizzleNeon } from "drizzle-orm/neon-serverless";
 import { drizzle as drizzlePg, type PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import { getEnv } from "@/lib/env";
+import { logger } from "@/lib/logger";
 import * as schema from "./schema";
 
 // Driver is chosen by target, not env flags: Neon endpoints get the Neon
@@ -58,6 +59,12 @@ export function rowsOf<T>(result: unknown): T[] {
   ) {
     return (result as { rows: T[] }).rows;
   }
+  // A third driver shape would silently return [] and look like "no data" —
+  // warn loudly (shape only, never row contents) so it's diagnosable.
+  logger.warn(
+    { resultType: typeof result, keys: result ? Object.keys(result).slice(0, 8) : [] },
+    "rowsOf: unrecognized driver result shape; returning empty",
+  );
   return [];
 }
 

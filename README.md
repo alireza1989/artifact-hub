@@ -413,6 +413,27 @@ client-direct-to-Blob (browser → Vercel Blob via a short-lived token) and pass
 resulting URL to the server, bypassing the Server-Action body cap. Tracked in
 `PLAN.md` (Decision Log, 2026-07-06 size-handling entry).
 
+## Roadmap — what a full product would add
+
+For reviewers: this is a deliberately scoped v1 (see the cut list in
+[`PLAN.md`](./PLAN.md) §9 for the reasoning behind each omission). The items
+below are the path from "polished demo" to "comprehensive product", roughly in
+the order I'd build them. `core/` is auth-agnostic and framework-free, so none
+of these require a rewrite — they slot in at the adapter or schema layer.
+
+| Area | What & why | Notes |
+|---|---|---|
+| **RBAC / accounts** | Real users (Auth.js or Neon Auth), orgs/teams, and roles (owner · editor · reviewer · viewer) replacing the single team token. Per-artifact ownership and permissions. | The biggest unlock — most items below depend on knowing *who* someone is. Auth checks already sit at the adapter layer, so core is untouched. |
+| **Mentions & notifications** | `@name` in comments, review requests ("assign this to Dana"), and notify via email/Slack webhook on mention, new comment, or synthesis change. | Needs accounts first. The comment pipeline already stores structured data (anchors) — mentions are one more parsed field. |
+| **Security hardening** | MCP OAuth 2.1 (resource indicators) instead of a static bearer; short-lived scoped share tokens with per-viewer identity; durable (KV/Postgres) rate limiting; DNS-pinned `sourceUrl` fetches (the one accepted TOCTOU residual); audit log of admin/destructive actions; CSP nonces on the app shell; secret rotation runbook. | The demo token published above is the single biggest thing RBAC + OAuth removes. |
+| **Editing & versioning** | Replace-file and edit-in-place (for text kinds) producing an `artifact_versions` history with diffs between versions; comments pinned to the version they were made on; "outdated" markers on anchors whose passage changed. | The anchor re-location machinery (quote + prefix/suffix) was built with this in mind — a moved quote already degrades gracefully. |
+| **Large uploads** | Client-direct-to-Blob (presigned) so the web form reaches the full 25 MB instead of ~4 MB, plus resumable uploads and configurable caps. | Tracked in the Decision Log since Phase 2. |
+| **Review workflow** | Review states (open → changes requested → approved), resolvable comment threads, reviewer checklists, and routing rules (tag/kind → default reviewers). | Synthesis already extracts action items — states make them actionable. |
+| **Search at scale** | pgvector embeddings + hybrid ranking once the catalog outgrows FTS; "similar artifacts"; saved searches. | The NL-search translator stays — it would emit hybrid queries instead. |
+| **Collections & organization** | Folders/collections, pinned artifacts, bulk operations (tag, delete, export), and a JSON/ZIP export for portability. | |
+| **Deeper observability** | OpenTelemetry traces across adapter → core → model calls, structured request logs shipped to a collector, uptime alerts on the smoke script. | `llm_calls` + pino cover the demo honestly; OTel is the production step. |
+| **MCP surface growth** | Tools for the newer features (anchored comments exist; add tag cleanup, admin listing), MCP resources for artifact content, and prompts/templates for common review flows. | Additive-only, as with every MCP change so far. |
+
 ## Maintaining & extending
 
 Recipes for the changes you're most likely to make, and the gotchas that will

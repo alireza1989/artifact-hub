@@ -19,5 +19,10 @@ export {
   getAiWindowStats,
   getRecentAiFailures,
 } from "./observability";
-export { getOrCreateSynthesis, invalidateSynthesis, synthesizeComments } from "./synthesis";
+export {
+  getOrCreateSynthesis,
+  invalidateSynthesis,
+  regenerateSynthesis,
+  synthesizeComments,
+} from "./synthesis";
 export { suggestTagMerges, type TagMergeSuggestions } from "./tag-normalize";

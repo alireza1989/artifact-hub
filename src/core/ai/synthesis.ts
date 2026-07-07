@@ -41,11 +41,24 @@ async function loadStored(
   return row ?? null;
 }
 
-// Drop the stored summary so the next read regenerates from scratch (PLAN Phase
-// 6.6 "re-run AI"). Deleting rather than regenerating here keeps the lazy
-// single-flight path in getOrCreateSynthesis the only generation code.
+// Drop the stored summary so the next read regenerates from scratch. Prefer
+// regenerateSynthesis for user-facing "refresh": deleting first means a failed
+// regeneration (budget/model error) loses the existing summary.
 export async function invalidateSynthesis(artifactId: string): Promise<void> {
   await getDb().delete(feedbackSummaries).where(eq(feedbackSummaries.artifactId, artifactId));
+}
+
+// Owner-triggered re-synthesis (PLAN Phase 6.6): generate FIRST, replace only on
+// success. A fallback/budget/error outcome keeps the existing summary intact and
+// reports false (review 2026-07-07 — the delete-then-lazy version destroyed the
+// good summary when the model failed).
+export async function regenerateSynthesis(artifactId: string): Promise<boolean> {
+  const total = await countComments(artifactId);
+  if (total < 2) return false;
+  const summary = await generate(artifactId);
+  if (!summary) return false;
+  await storeSummary(getDb(), artifactId, summary, total);
+  return true;
 }
 
 // Synthesize a batch of comments via the schema-validated wrapper. DB-free (the
@@ -60,6 +73,10 @@ export async function synthesizeComments(
     id: c.id,
     authorName: c.authorName,
     body: c.body.slice(0, SYNTHESIS_BODY_CHARS),
+    // Keep the anchored-passage grounding (Phase 6.4) — dropping it here made
+    // the feature a silent no-op (caught in review 2026-07-07). Truncation
+    // happens in buildSynthesisInstruction.
+    anchorQuote: c.anchorQuote,
   }));
   const validIds = new Set(trimmed.map((c) => c.id));
 
@@ -138,26 +155,36 @@ export async function getOrCreateSynthesis(artifactId: string): Promise<Feedback
     // (stale) summary rather than storing an empty one.
     if (summary === null) return current?.summary ?? null;
 
-    await tx
-      .insert(feedbackSummaries)
-      .values({
-        artifactId,
-        summary,
-        commentCountAtGeneration: lockedTotal,
-        model: SYNTHESIS_MODEL,
-        promptVersion: SYNTHESIS_PROMPT_VERSION,
-      })
-      .onConflictDoUpdate({
-        target: feedbackSummaries.artifactId,
-        set: {
-          summary,
-          commentCountAtGeneration: lockedTotal,
-          model: SYNTHESIS_MODEL,
-          promptVersion: SYNTHESIS_PROMPT_VERSION,
-          generatedAt: new Date(),
-        },
-      });
-
+    await storeSummary(tx, artifactId, summary, lockedTotal);
     return summary;
   });
+}
+
+// Upsert the stored summary; shared by the lazy path (inside its advisory-lock
+// transaction) and the explicit regenerate path.
+async function storeSummary(
+  db: Pick<ReturnType<typeof getDb>, "insert">,
+  artifactId: string,
+  summary: FeedbackSummary,
+  commentCountAtGeneration: number,
+): Promise<void> {
+  await db
+    .insert(feedbackSummaries)
+    .values({
+      artifactId,
+      summary,
+      commentCountAtGeneration,
+      model: SYNTHESIS_MODEL,
+      promptVersion: SYNTHESIS_PROMPT_VERSION,
+    })
+    .onConflictDoUpdate({
+      target: feedbackSummaries.artifactId,
+      set: {
+        summary,
+        commentCountAtGeneration,
+        model: SYNTHESIS_MODEL,
+        promptVersion: SYNTHESIS_PROMPT_VERSION,
+        generatedAt: new Date(),
+      },
+    });
 }

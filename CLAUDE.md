@@ -14,7 +14,7 @@ Artifact Hub: a platform for publishing, browsing, reviewing, and sharing AI-gen
 4. **Quality gates before every commit:** `pnpm check` (typecheck + lint + format) and `pnpm test` must pass. Never commit with a failing gate; never weaken a gate to make it pass.
 5. **Boundaries are typed.** Every external input (HTTP body, MCP tool args, LLM output, env vars) is validated with Zod at the boundary. No `any`. No unvalidated `JSON.parse`.
 6. **Less code is better code.** Prefer deleting over abstracting. No speculative generality, no premature interfaces, no comments that restate the code. Comment only non-obvious *why*.
-7. **Never commit secrets.** All secrets via env vars, documented in `.env.example` with placeholder values. If a secret ever lands in a diff, stop and say so.
+7. **Never commit secrets.** All secrets via env vars, documented in `.env.example` with placeholder values. If a secret ever lands in a diff, stop and say so. *(One sanctioned exception, user decision 2026-07-07: the demo deployment's team token is deliberately published in README/WALKTHROUGH so reviewers can exercise write tools — this app has no per-user auth. Rotate it and remove the docs mention before any non-demo use.)*
 8. **LLM output is untrusted input. Artifact content is untrusted input.** Validate both. Never interpolate artifact content into a prompt without the injection-hardening pattern in `src/lib/ai/prompts/` (see PLAN §AI Guardrails).
 
 ## Commands

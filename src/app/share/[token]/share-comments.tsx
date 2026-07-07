@@ -48,7 +48,10 @@ export function ShareComments({ token, comments }: { token: string; comments: Co
   const formRef = useRef<HTMLFormElement>(null);
   const compose = useAnchorCompose();
 
-  const pins = numberImagePins(optimistic);
+  // Pin numbers must match the preview's markers, which render from the
+  // server-provided comments — exclude the optimistic pending entry or every
+  // chip shifts by one against the visible markers until revalidation lands.
+  const pins = numberImagePins(optimistic.filter((c) => !c.pending));
 
   function onSubmit(formData: FormData) {
     const authorName = String(formData.get("authorName") ?? "").trim();
@@ -68,13 +71,16 @@ export function ShareComments({ token, comments }: { token: string; comments: Co
         createdAt: new Date(),
         pending: true,
       });
-      formRef.current?.reset();
-      compose?.setPending(null);
       const res = await submitShareComment(formData);
       if (res.error) {
+        // Keep the typed comment + captured anchor so a rate-limit or expired
+        // link doesn't destroy the reviewer's work (review 2026-07-07); the
+        // optimistic entry reverts on its own.
         setError(res.error);
         toast.error(res.error);
       } else {
+        formRef.current?.reset();
+        compose?.setPending(null);
         toast.success("Comment posted");
       }
     });

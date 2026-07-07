@@ -108,11 +108,16 @@ function useCopy(): [boolean, (text: string) => void] {
   return [
     copied,
     (text: string) => {
-      void navigator.clipboard.writeText(text).then(() => {
-        setCopied(true);
-        toast.success("Copied to clipboard");
-        setTimeout(() => setCopied(false), 1500);
-      });
+      navigator.clipboard.writeText(text).then(
+        () => {
+          setCopied(true);
+          toast.success("Copied to clipboard");
+          setTimeout(() => setCopied(false), 1500);
+        },
+        // Clipboard can be denied (permissions, non-secure context) — tell the
+        // user instead of failing silently.
+        () => toast.error("Couldn't copy — select the text and copy manually"),
+      );
     },
   ];
 }

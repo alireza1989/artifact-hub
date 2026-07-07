@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { invalidateSynthesis } from "@/core/ai";
+import { regenerateSynthesis } from "@/core/ai";
 import {
   ArtifactNotFoundError,
   deleteArtifact,
@@ -137,13 +137,14 @@ export async function regenerateMetadataAction(
   return { ok: true };
 }
 
-// Force the feedback summary to regenerate on next read (PLAN Phase 6.6): drop
-// the stored synthesis; the page render's getFeedback lazily rebuilds it.
+// Force a fresh feedback summary (PLAN Phase 6.6). Generate-then-replace: a
+// failed regeneration (budget/model error) keeps the existing summary instead
+// of destroying it (review 2026-07-07).
 export async function refreshSynthesisAction(formData: FormData): Promise<void> {
   if (!(await hasValidSession())) redirect("/unlock");
   const id = artifactIdSchema.parse(String(formData.get("id")));
   try {
-    await invalidateSynthesis(id);
+    await regenerateSynthesis(id);
   } catch (error) {
     logger.error({ err: error, action: "refresh-synthesis", id }, "web action failed");
     throw error;
