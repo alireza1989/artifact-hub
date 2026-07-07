@@ -7,7 +7,13 @@ exposing the **same capabilities three ways** — a web UI, a REST API, and a re
 pre-fill metadata on publish and synthesize scattered review comments into
 consensus / disagreement / action items.
 
-Live demo: <https://artifact-hub-murex.vercel.app>
+**Demo deployment:** <https://artifact-hub-murex.vercel.app>
+
+**Demo team (admin) token** (`/unlock` for the web UI, bearer for REST/MCP writes — published deliberately for this demo since there's no per-user auth):
+
+```
+jYVPlXAWzhk16NcZ+wWTnjwSzqJUwlq9b5r/DG9cU0Dx+jLTCAs4I6+QwGanPfdq
+```
 
 See [`PLAN.md`](./PLAN.md) for scope, architecture, and the decision log, and
 [`CLAUDE.md`](./CLAUDE.md) for the development operating manual.
