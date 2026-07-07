@@ -5,14 +5,24 @@ import { artifacts, shareLinks } from "@/db/schema";
 import { hashToken, parseToken, verifySignature } from "./token";
 
 export type ShareVerifyResult =
-  | { ok: true; artifact: Artifact; linkId: string }
+  | { ok: true; artifact: Artifact; linkId: string; expiresAt: Date }
   | { ok: false; reason: "invalid" | "expired" | "revoked" };
+
+// `countAccess: false` resolves the token without bumping the access counter — used
+// by the share-view comment write, which re-verifies the token to authorize the
+// comment (never trusting a client-passed artifact id) but must not double-count a
+// view the page GET already recorded. Defaults to true so a plain view still counts.
+export type VerifyShareTokenOptions = { countAccess?: boolean };
 
 // Resolve a share token to its artifact (PLAN §3.3), or a typed reason it failed
 // so the Phase-3 viewer can show a friendly expired/revoked page rather than a 404.
 // Order: format check → DB lookup by token hash → constant-time signature check →
-// revocation → expiry → increment access counter.
-export async function verifyShareToken(token: string): Promise<ShareVerifyResult> {
+// revocation → expiry → increment access counter. Returns the link's expiry so the
+// viewer can render a live "expires in 2 days" countdown.
+export async function verifyShareToken(
+  token: string,
+  { countAccess = true }: VerifyShareTokenOptions = {},
+): Promise<ShareVerifyResult> {
   const parsed = parseToken(token);
   if (!parsed) return { ok: false, reason: "invalid" };
 
@@ -29,10 +39,12 @@ export async function verifyShareToken(token: string): Promise<ShareVerifyResult
   if (row.revokedAt) return { ok: false, reason: "revoked" };
   if (row.expiresAt.getTime() <= Date.now()) return { ok: false, reason: "expired" };
 
-  await db
-    .update(shareLinks)
-    .set({ accessCount: sql`${shareLinks.accessCount} + 1`, lastAccessedAt: new Date() })
-    .where(eq(shareLinks.id, row.id));
+  if (countAccess) {
+    await db
+      .update(shareLinks)
+      .set({ accessCount: sql`${shareLinks.accessCount} + 1`, lastAccessedAt: new Date() })
+      .where(eq(shareLinks.id, row.id));
+  }
 
   const [artifact] = await db
     .select()
@@ -40,5 +52,5 @@ export async function verifyShareToken(token: string): Promise<ShareVerifyResult
     .where(eq(artifacts.id, row.artifactId))
     .limit(1);
   if (!artifact) return { ok: false, reason: "invalid" };
-  return { ok: true, artifact, linkId: row.id };
+  return { ok: true, artifact, linkId: row.id, expiresAt: row.expiresAt };
 }

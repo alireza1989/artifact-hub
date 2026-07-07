@@ -5,4 +5,8 @@ export { ShareLinkNotFoundError } from "./errors";
 export { listShareLinks, type ShareLinkSummary } from "./links";
 export { type RevokeResult, revokeShareLink } from "./revoke";
 export { hashToken, parseToken, signToken, verifySignature } from "./token";
-export { type ShareVerifyResult, verifyShareToken } from "./verify";
+export {
+  type ShareVerifyResult,
+  type VerifyShareTokenOptions,
+  verifyShareToken,
+} from "./verify";

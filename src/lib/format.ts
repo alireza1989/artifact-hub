@@ -17,6 +17,19 @@ export function formatDate(date: Date | string): string {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
+// Friendly relative expiry for the share viewer, e.g. "in 2 days" / "in 5 hours".
+// Reads as "This link expires {formatExpiresIn(expiresAt)}." Past due → "expired".
+export function formatExpiresIn(target: Date | string): string {
+  const ms = (typeof target === "string" ? new Date(target) : target).getTime() - Date.now();
+  if (ms <= 0) return "expired";
+  const minutes = Math.round(ms / 60_000);
+  if (minutes < 60) return `in ${minutes} minute${minutes === 1 ? "" : "s"}`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 48) return `in ${hours} hour${hours === 1 ? "" : "s"}`;
+  const days = Math.round(hours / 24);
+  return `in ${days} day${days === 1 ? "" : "s"}`;
+}
+
 const KIND_LABELS: Record<ArtifactKind, string> = {
   html: "HTML",
   image: "Image",

@@ -60,6 +60,24 @@ describe("createShareLink / verifyShareToken", () => {
     expect(summary?.accessCount).toBe(1); // verify incremented it
   });
 
+  it("returns the link expiry on success for the viewer countdown", async () => {
+    const id = await seedArtifact();
+    const link = await createShareLink(id, "24h");
+    const res = await verifyShareToken(link.token);
+    expect(res.ok).toBe(true);
+    if (res.ok) expect(res.expiresAt.getTime()).toBe(link.expiresAt.getTime());
+  });
+
+  it("does not increment access count when countAccess is false", async () => {
+    const id = await seedArtifact();
+    const link = await createShareLink(id, "24h");
+
+    const res = await verifyShareToken(link.token, { countAccess: false });
+    expect(res.ok).toBe(true);
+    const [summary] = await listShareLinks(id);
+    expect(summary?.accessCount).toBe(0); // view resolved, but not counted
+  });
+
   it("returns invalid for an unknown/forged token", async () => {
     const res = await verifyShareToken("bogus.signature");
     expect(res).toMatchObject({ ok: false, reason: "invalid" });
