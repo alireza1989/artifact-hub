@@ -196,7 +196,7 @@ _(Deploy deferred by decision 2026-07-05 — Phase 0 exit redefined to: `pnpm ch
 - [x] Scaffold + tooling (Node 24 pinned via `.nvmrc`/`engines`; Next 16.2.10; MCP SDK docs to be verified at Phase 2 start)
 - [x] Schema + migrations (all §3.1 tables/indexes; `pnpm db:migrate` verified against local docker Postgres)
 - [x] CI pipeline (GitHub Actions: install → check → test → build; activates on first push)
-- [ ] First deploy — deferred to a later cloud phase (see Decision Log)
+- [x] First deploy — deferred at Phase 0 (see Decision Log), fulfilled during Phase 1 when Vercel Blob was pulled forward; production has deployed continuously since (checkbox closed retroactively 2026-07-07)
 
 ### Phase 1 — Publish & browse (core loop)
 `core/artifacts` (create, get, list/search, delete) + upload pipeline (sniff, limits, blob) + REST routes + gallery UI + artifact page with all §2 preview renderers + `/raw/[id]` sandboxed serving.
@@ -336,8 +336,9 @@ _(Done 2026-07-07, built together with 6.4 — see the 6.4 note above for the fu
 
 ### Phase 7 — Documentation & walkthrough support
 WRITEUP.md (decisions, cuts, architecture, MCP design, LLM usage + eval results, deployment, next steps); walkthrough script/recording checklist demonstrating the full loop including publishing an artifact *through* the MCP server.
-- [ ] WRITEUP.md
-- [ ] Walkthrough
+_(Phase 7 done 2026-07-07: WRITEUP.md — problem/principles, architecture + content-security model, share-token design, MCP design rationale (stateless transport, LLM-operator descriptions, recoverable errors, additive evolution), all four LLM features under the one wrapper discipline with the real eval scorecard (28 fixtures, schema/injection 100% across suites), quality strategy incl. the two instructive bugs, the cut list with future paths, deployment/ops, next steps. WALKTHROUGH.md — pre-demo checklist + 6-act ~10-min script with talking points and a fallback table; Act 5 is the conversational MCP publish→share→feedback loop. Numbers sourced from evals/report.json and the live test run, not memory.)_
+- [x] WRITEUP.md
+- [x] Walkthrough (WALKTHROUGH.md)
 
 ## 9. Cut list (deliberate non-goals, with rationale)
 

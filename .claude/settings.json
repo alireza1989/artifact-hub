@@ -110,7 +110,8 @@
       "Bash(node_modules/.bin/tsx --version)",
       "Bash(echo \"check exit: $?\")",
       "Bash(echo \"check: $?\")",
-      "Bash(python3 -c ' *)"
+      "Bash(python3 -c ' *)",
+      "Bash(echo \"md lint: $?\")"
     ],
     "deny": [
       "Read(.env)",
