@@ -10,7 +10,7 @@ A ~10-minute script demonstrating the full loop: publish → browse → share �
 jYVPlXAWzhk16NcZ+wWTnjwSzqJUwlq9b5r/DG9cU0Dx+jLTCAs4I6+QwGanPfdq
 ```
 
-## Pre-demo checklist (10 minutes before)
+## Pre-demo checklist (10 minutes before) [FOR DEMO YOU CAN SKIP THIS PART - YOU WILL SEE THE DATA FROM PREVIOUS DEMOs WHICH IS FINE]
 
 - [ ] `pnpm db:seed --reset` against prod — clean demo catalog (8 artifacts across every kind, comment sets that trigger synthesis, one active share link), test noise swept.
 - [ ] Production URL loads; gallery shows live previews (HTML cards render scaled pages, not icons).
