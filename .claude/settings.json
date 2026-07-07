@@ -108,7 +108,8 @@
       "Bash(export COREPACK_ENABLE_DOWNLOAD_PROMPT=0)",
       "Bash(echo \"pnpm: $\\(pnpm --version 2>&1\\)\")",
       "Bash(node_modules/.bin/tsx --version)",
-      "Bash(echo \"check exit: $?\")"
+      "Bash(echo \"check exit: $?\")",
+      "Bash(echo \"check: $?\")"
     ],
     "deny": [
       "Read(.env)",

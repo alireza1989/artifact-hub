@@ -1,9 +1,11 @@
 import { MessageSquare } from "lucide-react";
 import Link from "next/link";
+import { Suspense } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import type { ArtifactListItem } from "@/core/artifacts";
 import { formatDate, kindLabel } from "@/lib/format";
+import { CardPreview } from "./card-preview";
 import { KindIcon } from "./kind-icon";
 import { TagChip } from "./tag-chip";
 
@@ -11,20 +13,18 @@ export function ArtifactCard({ artifact }: { artifact: ArtifactListItem }) {
   return (
     <Card className="group relative gap-0 overflow-hidden p-0 transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md has-[a:focus-visible]:ring-3 has-[a:focus-visible]:ring-ring/50">
       <div className="bg-muted/40 relative flex h-40 items-center justify-center overflow-hidden border-b">
-        {artifact.kind === "image" ? (
-          // biome-ignore lint/performance/noImgElement: artifact bytes are served via /raw, not Next-optimizable.
-          <img
-            src={`/raw/${artifact.id}`}
-            alt=""
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
-            loading="lazy"
-          />
-        ) : (
-          <KindIcon
-            kind={artifact.kind}
-            className="text-muted-foreground/70 size-10 transition-colors group-hover:text-primary/60"
-          />
-        )}
+        {/* Live per-kind preview (Phase 6.2). Snippet kinds fetch server-side, so
+            Suspense streams the card in with the icon until the snippet lands. */}
+        <Suspense
+          fallback={
+            <KindIcon
+              kind={artifact.kind}
+              className="text-muted-foreground/70 size-10 transition-colors group-hover:text-primary/60"
+            />
+          }
+        >
+          <CardPreview artifact={artifact} />
+        </Suspense>
         <Badge
           variant="outline"
           className="bg-background/85 text-muted-foreground absolute top-2.5 left-2.5 backdrop-blur"
