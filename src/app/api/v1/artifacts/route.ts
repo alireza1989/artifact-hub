@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createArtifact, listArtifacts } from "@/core/artifacts";
+import { listArtifacts, publishArtifact } from "@/core/artifacts";
 import { isAuthorized } from "@/lib/http/auth";
 import { toErrorResponse, unauthorized } from "@/lib/http/errors";
 import { parsePublishRequest } from "@/lib/http/publish-request";
@@ -24,8 +24,10 @@ export async function POST(req: Request): Promise<NextResponse> {
   if (!isAuthorized(req)) return unauthorized();
   try {
     const parsed = await parsePublishRequest(req);
-    const artifact = await createArtifact({ ...parsed, source: "api" });
-    return NextResponse.json(artifact, { status: 201 });
+    // Auto-metadata (Feature A) fills any omitted title/description/tags; `aiFilled`
+    // reports which fields the AI supplied so a client can flag them for review.
+    const { artifact, aiFilled } = await publishArtifact({ ...parsed, source: "api" });
+    return NextResponse.json({ ...artifact, aiFilled }, { status: 201 });
   } catch (error) {
     return toErrorResponse(error);
   }

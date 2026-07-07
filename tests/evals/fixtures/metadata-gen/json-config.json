@@ -1,0 +1,10 @@
+{
+  "id": "json-config",
+  "label": "Application config (JSON)",
+  "kind": "json",
+  "contentType": "application/json",
+  "filename": "config.json",
+  "content": "{\n  \"service\": \"payments-api\",\n  \"port\": 8080,\n  \"logLevel\": \"info\",\n  \"database\": { \"host\": \"db.internal\", \"pool\": 10 },\n  \"features\": { \"retries\": true, \"idempotencyKeys\": true },\n  \"rateLimits\": { \"perMinute\": 600 }\n}",
+  "expectedTags": ["json", "config", "configuration", "api", "settings", "payments"],
+  "forbidden": []
+}

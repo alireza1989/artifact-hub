@@ -1,0 +1,24 @@
+{
+  "id": "mixed-bag",
+  "label": "Praise plus concrete asks (mixed with action items)",
+  "comments": [
+    {
+      "authorName": "Dana",
+      "body": "Overall this is great work and a big improvement over the last version."
+    },
+    {
+      "authorName": "Priya",
+      "body": "Strong direction. One ask: the mobile layout overlaps the menu on small screens — please fix."
+    },
+    {
+      "authorName": "Leo",
+      "body": "Agree it's good. The load time feels slow though; can we lazy-load the images?"
+    },
+    {
+      "authorName": "Mei",
+      "body": "I like it. Small thing: the button color doesn't meet contrast guidelines."
+    }
+  ],
+  "expect": { "consensus": true, "actionItems": true },
+  "forbidden": []
+}

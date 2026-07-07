@@ -1,0 +1,21 @@
+{
+  "id": "split-opinion",
+  "label": "Reviewers split on a key decision (mixed)",
+  "comments": [
+    {
+      "authorName": "Dana",
+      "body": "The dark theme looks premium and modern. Strong yes from me."
+    },
+    {
+      "authorName": "Priya",
+      "body": "I actually find the dark theme hard to read for long reports. I'd prefer light by default."
+    },
+    { "authorName": "Leo", "body": "Dark mode is great and on-brand. Keep it as the default." },
+    {
+      "authorName": "Mei",
+      "body": "Please don't default to dark — accessibility testing showed low contrast on the charts."
+    }
+  ],
+  "expect": { "disagreements": true, "sentiment": "mixed" },
+  "forbidden": []
+}

@@ -1,0 +1,10 @@
+{
+  "id": "csv-sales",
+  "label": "Quarterly sales CSV",
+  "kind": "csv",
+  "contentType": "text/csv",
+  "filename": "q3-sales.csv",
+  "content": "region,rep,product,units,revenue\nNorth,Dana,Pro Plan,120,24000\nNorth,Dana,Team Plan,45,18000\nSouth,Priya,Pro Plan,98,19600\nSouth,Priya,Enterprise,12,60000\nWest,Leo,Team Plan,60,24000\nWest,Leo,Enterprise,8,40000\nEast,Mei,Pro Plan,140,28000",
+  "expectedTags": ["sales", "csv", "data", "revenue", "report", "spreadsheet", "quarterly"],
+  "forbidden": []
+}

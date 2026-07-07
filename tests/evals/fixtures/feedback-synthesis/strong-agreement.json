@@ -1,0 +1,20 @@
+{
+  "id": "strong-agreement",
+  "label": "Reviewers strongly agree (positive)",
+  "comments": [
+    {
+      "authorName": "Dana",
+      "body": "This landing page is fantastic — the hero section is crystal clear and the call to action stands out."
+    },
+    {
+      "authorName": "Priya",
+      "body": "Agreed, really strong. The value proposition is obvious within a couple of seconds."
+    },
+    {
+      "authorName": "Leo",
+      "body": "Love it. Clean, fast, and the CTA is impossible to miss. Ship it."
+    }
+  ],
+  "expect": { "consensus": true, "sentiment": "positive" },
+  "forbidden": []
+}

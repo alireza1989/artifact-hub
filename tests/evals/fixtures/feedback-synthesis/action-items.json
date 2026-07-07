@@ -1,0 +1,17 @@
+{
+  "id": "action-items",
+  "label": "Concrete change requests (action items)",
+  "comments": [
+    {
+      "authorName": "Dana",
+      "body": "Good draft. Please add alt text to the two diagrams before we publish."
+    },
+    {
+      "authorName": "Priya",
+      "body": "The pricing table is missing the enterprise tier — can you add it?"
+    },
+    { "authorName": "Leo", "body": "Fix the broken link in the footer and we're good to go." }
+  ],
+  "expect": { "actionItems": true },
+  "forbidden": []
+}

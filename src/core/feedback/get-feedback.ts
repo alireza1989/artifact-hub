@@ -1,18 +1,16 @@
 import { eq, sql } from "drizzle-orm";
+import { getOrCreateSynthesis } from "@/core/ai";
 import { getArtifact } from "@/core/artifacts";
 import { getDb } from "@/db";
 import type { Comment } from "@/db/schema";
 import { comments } from "@/db/schema";
+import type { FeedbackSummary } from "@/lib/validation";
+
 import { listComments } from "./comments";
 
-// Feedback synthesis payload shape (PLAN §5.2). Defined here so the get_feedback
-// contract is forward-compatible: Phase 4 fills `summary`, Phase 2 leaves it null.
-export type FeedbackSummary = {
-  consensus: { point: string; commentIds: string[] }[];
-  disagreements: { point: string; commentIds: string[] }[];
-  actionItems: { point: string; commentIds: string[] }[];
-  sentiment: "positive" | "mixed" | "negative";
-};
+// Canonical synthesis shape lives in lib/validation; re-export so existing
+// consumers (MCP get_feedback, the synthesis card) keep importing it from here.
+export type { FeedbackSummary };
 
 export type FeedbackResult = {
   comments: Comment[];
@@ -20,8 +18,10 @@ export type FeedbackResult = {
   summary: FeedbackSummary | null;
 };
 
-// All comments (capped) + the AI synthesis. `summary` is null until Phase 4 wires
-// synthesis; `total` is the true count even when the comment list is capped.
+// All comments (capped) + the AI synthesis (PLAN §5.2). `total` is the true count
+// even when the list is capped. Synthesis is generated lazily on read once an
+// artifact has ≥2 comments, reusing a fresh stored summary and single-flighting
+// concurrent regenerations; below the threshold there is no summary.
 export async function getFeedback(artifactId: string): Promise<FeedbackResult> {
   await getArtifact(artifactId);
   const rows = await listComments(artifactId);
@@ -29,5 +29,7 @@ export async function getFeedback(artifactId: string): Promise<FeedbackResult> {
     .select({ total: sql<number>`count(*)::int` })
     .from(comments)
     .where(eq(comments.artifactId, artifactId));
-  return { comments: rows, total: countRow?.total ?? 0, summary: null };
+  const total = countRow?.total ?? 0;
+  const summary = total >= 2 ? await getOrCreateSynthesis(artifactId) : null;
+  return { comments: rows, total, summary };
 }

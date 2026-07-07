@@ -37,8 +37,10 @@ export const artifactSource = pgEnum("artifact_source", ["web", "mcp", "api"]);
 
 export const llmOutcome = pgEnum("llm_outcome", ["ok", "schema_retry_ok", "fallback", "error"]);
 
-// What the AI suggested at publish time, kept for audit (PLAN §3.1).
-type AiGeneratedMeta = {
+// What the AI suggested at publish time, kept for audit (PLAN §3.1). Exported so
+// core/ai (Feature A) records suggestions and the artifact page badges AI-filled
+// fields against the stored values.
+export type AiGeneratedMeta = {
   title?: string;
   description?: string;
   tags?: string[];

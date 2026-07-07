@@ -1,0 +1,10 @@
+{
+  "id": "plaintext-notes",
+  "label": "Plain-text research notes",
+  "kind": "text",
+  "contentType": "text/plain",
+  "filename": "onboarding-research.txt",
+  "content": "User onboarding research — synthesis\n\nWe interviewed 8 new customers in their first week.\n\nKey findings:\n- 6 of 8 could not find the invite-teammate button.\n- Everyone loved the sample project, but 4 wanted to delete it afterward.\n- The empty dashboard felt intimidating to 3 non-technical users.\n\nRecommendation: add a guided checklist and make the sample project dismissible.",
+  "expectedTags": ["research", "notes", "onboarding", "ux", "user research", "product"],
+  "forbidden": []
+}

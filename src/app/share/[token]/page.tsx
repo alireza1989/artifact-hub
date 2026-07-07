@@ -1,6 +1,7 @@
 import { Clock } from "lucide-react";
 import { ArtifactPreview } from "@/components/artifacts/preview";
-import { listComments } from "@/core/feedback";
+import { SynthesisCard } from "@/components/feedback/synthesis-card";
+import { getFeedback } from "@/core/feedback";
 import { verifyShareToken } from "@/core/sharing";
 import { formatExpiresIn, kindLabel } from "@/lib/format";
 import { shareTokenSchema } from "@/lib/validation";
@@ -27,7 +28,9 @@ export default async function SharePage({ params }: { params: Promise<{ token: s
   if (!result.ok) return <ShareState reason={result.reason} />;
 
   const { artifact, expiresAt } = result;
-  const comments = await listComments(artifact.id);
+  // getFeedback returns comments + the AI synthesis (regenerated lazily at ≥2
+  // comments). External reviewers see the summary too — it's the core review loop.
+  const feedback = await getFeedback(artifact.id);
 
   return (
     <div className="space-y-6">
@@ -62,7 +65,11 @@ export default async function SharePage({ params }: { params: Promise<{ token: s
 
       <ArtifactPreview artifact={artifact} />
 
-      <ShareComments token={token} comments={comments} />
+      {feedback.summary ? (
+        <SynthesisCard summary={feedback.summary} comments={feedback.comments} />
+      ) : null}
+
+      <ShareComments token={token} comments={feedback.comments} />
     </div>
   );
 }

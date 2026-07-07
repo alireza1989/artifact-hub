@@ -1,0 +1,10 @@
+{
+  "id": "html-landing",
+  "label": "HTML marketing landing page",
+  "kind": "html",
+  "contentType": "text/html",
+  "filename": "landing.html",
+  "content": "<!doctype html><html><head><title>Nimbus — Ship faster</title></head><body><header><h1>Nimbus</h1><p>The deployment platform for small teams.</p><a href=\"/signup\">Start free trial</a></header><section><h2>Deploy in seconds</h2><p>Push to Git and Nimbus builds, tests, and ships your app to a global edge network. No servers to manage.</p></section><section><h2>Pricing</h2><p>Free for hobby projects. Pro plans from $20/month.</p></section><footer>© 2026 Nimbus Inc.</footer></body></html>",
+  "expectedTags": ["landing page", "marketing", "saas", "deployment", "product", "web", "startup"],
+  "forbidden": []
+}

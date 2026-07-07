@@ -1,13 +1,13 @@
 import { nanoid } from "nanoid";
 import { getDb } from "@/db";
-import type { Artifact } from "@/db/schema";
+import type { AiGeneratedMeta, Artifact } from "@/db/schema";
 import { artifacts } from "@/db/schema";
 import type { Storage } from "@/lib/storage";
 import { getStorage } from "@/lib/storage";
 import type { ArtifactKind, ArtifactSource, PublishMetadata } from "@/lib/validation";
 import { MAX_ARTIFACT_BYTES } from "@/lib/validation";
 import { EmptyContentError, FileTooLargeError } from "./errors";
-import { sniffArtifact } from "./sniff";
+import { type SniffResult, sniffArtifact } from "./sniff";
 
 export type CreateArtifactInput = {
   bytes: Uint8Array;
@@ -15,6 +15,11 @@ export type CreateArtifactInput = {
   declaredContentType?: string;
   source: ArtifactSource;
   metadata?: PublishMetadata;
+  // Audit record of what AI suggested (PLAN §3.1); drives the "suggested" badge.
+  aiGeneratedMeta?: AiGeneratedMeta | null;
+  // Pre-computed sniff result to avoid a second sniff when the caller (publish
+  // orchestrator) already classified the bytes to extract metadata from them.
+  sniffed?: SniffResult;
 };
 
 // Canonical extension per kind, used to give the stored blob a sensible pathname.
@@ -79,11 +84,13 @@ export async function createArtifact(
   if (input.bytes.length === 0) throw new EmptyContentError();
   if (input.bytes.length > MAX_ARTIFACT_BYTES) throw new FileTooLargeError(input.bytes.length);
 
-  const { contentType, kind } = await sniffArtifact({
-    bytes: input.bytes,
-    filename: input.filename,
-    declaredContentType: input.declaredContentType,
-  });
+  const { contentType, kind } =
+    input.sniffed ??
+    (await sniffArtifact({
+      bytes: input.bytes,
+      filename: input.filename,
+      declaredContentType: input.declaredContentType,
+    }));
 
   const id = nanoid();
   const { url } = await storage.put(
@@ -104,6 +111,7 @@ export async function createArtifact(
       blobUrl: url,
       sizeBytes: input.bytes.length,
       source: input.source,
+      aiGeneratedMeta: input.aiGeneratedMeta ?? null,
     })
     .returning();
 

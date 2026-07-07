@@ -1,0 +1,10 @@
+{
+  "id": "python-code",
+  "label": "Python data-processing script",
+  "kind": "text",
+  "contentType": "text/x-python",
+  "filename": "dedupe.py",
+  "content": "import csv\nimport sys\n\n# Remove duplicate rows from a CSV, keeping the first occurrence.\n\ndef dedupe(path):\n    seen = set()\n    rows = []\n    with open(path, newline='') as f:\n        for row in csv.reader(f):\n            key = tuple(row)\n            if key not in seen:\n                seen.add(key)\n                rows.append(row)\n    return rows\n\nif __name__ == '__main__':\n    for row in dedupe(sys.argv[1]):\n        print(','.join(row))",
+  "expectedTags": ["python", "code", "script", "csv", "data", "deduplication", "utility"],
+  "forbidden": []
+}

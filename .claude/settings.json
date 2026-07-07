@@ -98,7 +98,15 @@
       "Read(//Users/alireza/Documents/projects/**)",
       "Bash(awk '/StreamableHTTPServerTransportOptions/{f=1} f{print NR\": \"$0} f&&/\\\\}/{c++; if\\(c>=1 && /^\\\\}/\\) exit}' node_modules/@modelcontextprotocol/sdk/dist/esm/server/streamableHttp.d.ts)",
       "Bash(git -C /Users/alireza/Documents/projects/artifact-hub status --short)",
-      "Bash(SMOKE_BASE_URL=\"http://localhost:3000\" pnpm smoke)"
+      "Bash(SMOKE_BASE_URL=\"http://localhost:3000\" pnpm smoke)",
+      "Bash(SMOKE_BASE_URL=https://artifact-4rij9of6t-alireza1989s-projects.vercel.app node scripts/share-local.ts)",
+      "Bash(echo \"your share link -> $\\(curl -s -o /dev/null -w '%{http_code}' 'https://artifact-hub-murex.vercel.app/share/UlPR_t8D3wHilbET5TMlJ.pchFYJxHxWbrWmURgjhF43T-wxxKH_YTBAcAQ5hsJVc' --max-time 15\\)\")",
+      "Bash(echo \"route exists check \\(garbage token, expect 200 friendly page not 404\\) -> $\\(curl -s -o /dev/null -w '%{http_code}' 'https://artifact-hub-murex.vercel.app/share/aaaaaaaa.bbbbbbbb' --max-time 15\\)\")",
+      "Bash(SMOKE_BASE_URL=https://artifact-hub-murex.vercel.app node scripts/smoke.ts)",
+      "Skill(claude-api)",
+      "Skill(claude-api:*)",
+      "Bash(export COREPACK_ENABLE_DOWNLOAD_PROMPT=0)",
+      "Bash(echo \"pnpm: $\\(pnpm --version 2>&1\\)\")"
     ],
     "deny": [
       "Read(.env)",

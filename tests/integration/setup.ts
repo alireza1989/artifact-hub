@@ -25,4 +25,15 @@ beforeEach(async () => {
   await getDb().execute(
     sql`truncate table artifacts, comments, feedback_summaries, share_links, llm_calls restart identity cascade`,
   );
+
+  // Default LLM stub: returns non-JSON so every AI feature falls back
+  // deterministically (no real API calls; existing publish/feedback tests see the
+  // pre-Phase-4 behavior). AI-positive tests override this within the test.
+  const { setModelCallerForTesting } = await import("@/lib/ai");
+  setModelCallerForTesting(async () => ({
+    text: "the model is stubbed for tests",
+    inputTokens: 0,
+    outputTokens: 0,
+    stopReason: "end_turn",
+  }));
 });

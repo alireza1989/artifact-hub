@@ -52,5 +52,47 @@ jobs:
       - name: Build
         run: pnpm build
 
-  # The LLM eval job (PLAN §5.4) is added in Phase 4, guarded by ANTHROPIC_API_KEY
-  # secret availability and scoped to PRs touching lib/ai/ or core/ai/.
+  # LLM eval (PLAN §5.4): runs on PRs that touch the AI code, and only when the
+  # ANTHROPIC_API_KEY secret is configured (it spends tokens). Skips gracefully
+  # otherwise so forks and unconfigured repos still get a green CI.
+  eval:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect AI changes
+        id: filter
+        run: |
+          git fetch origin "${{ github.base_ref }}" --depth=1
+          if git diff --name-only "origin/${{ github.base_ref }}...HEAD" \
+            | grep -qE '^src/(lib|core)/ai/'; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: pnpm/action-setup@v4
+        if: steps.filter.outputs.changed == 'true'
+
+      - uses: actions/setup-node@v4
+        if: steps.filter.outputs.changed == 'true'
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+        if: steps.filter.outputs.changed == 'true'
+
+      - name: Eval (guarded by API key)
+        if: steps.filter.outputs.changed == 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "ANTHROPIC_API_KEY not configured; skipping eval."
+            exit 0
+          fi
+          pnpm eval

@@ -1,0 +1,20 @@
+{
+  "id": "neutral-questions",
+  "label": "Mostly clarifying questions (neutral/mixed)",
+  "comments": [
+    {
+      "authorName": "Dana",
+      "body": "What data source is the revenue chart using? Just want to confirm before I rely on it."
+    },
+    {
+      "authorName": "Priya",
+      "body": "Is this the final copy or a placeholder? Some sections read like drafts."
+    },
+    {
+      "authorName": "Leo",
+      "body": "Who is the intended audience here — internal or customer-facing?"
+    }
+  ],
+  "expect": {},
+  "forbidden": []
+}

@@ -2,7 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { ArtifactNotFoundError, createArtifact, deleteArtifact } from "@/core/artifacts";
+import {
+  ArtifactNotFoundError,
+  deleteArtifact,
+  publishArtifact,
+  updateArtifactMetadata,
+} from "@/core/artifacts";
 import { DomainError } from "@/core/errors";
 import { createShareLink, revokeShareLink, ShareLinkNotFoundError } from "@/core/sharing";
 import { createSession, hasValidSession } from "@/lib/auth/session";
@@ -51,7 +56,9 @@ export async function publishAction(_prev: FormState, formData: FormData): Promi
 
   let id: string;
   try {
-    const artifact = await createArtifact({
+    // Feature A fills any omitted metadata from the content; the artifact page
+    // shows AI-filled fields with a "suggested" badge for the owner to confirm.
+    const { artifact } = await publishArtifact({
       bytes: new Uint8Array(await file.arrayBuffer()),
       filename: file.name || undefined,
       declaredContentType: file.type || undefined,
@@ -65,6 +72,41 @@ export async function publishAction(_prev: FormState, formData: FormData): Promi
 
   revalidatePath("/");
   redirect(`/a/${id}`);
+}
+
+// Owner edit of metadata (PLAN §5.1: AI suggestions are editable). Gated on the
+// session before the core call, like every other write.
+export type UpdateMetaState = { error?: string; ok?: boolean };
+
+export async function updateMetadataAction(
+  _prev: UpdateMetaState,
+  formData: FormData,
+): Promise<UpdateMetaState> {
+  if (!(await hasValidSession())) return { error: "Your session expired. Unlock again." };
+
+  const id = artifactIdSchema.safeParse(String(formData.get("id")));
+  if (!id.success) return { error: "Invalid artifact." };
+
+  const rawTags = String(formData.get("tags") ?? "").trim();
+  let metadata: ReturnType<typeof publishMetadataSchema.parse>;
+  try {
+    metadata = publishMetadataSchema.parse({
+      title: str(formData.get("title")),
+      description: str(formData.get("description")),
+      tags: rawTags.length > 0 ? rawTags.split(",") : [],
+    });
+  } catch {
+    return { error: "Check the title, description, and tags and try again." };
+  }
+  if (!metadata.title) return { error: "Title can't be empty." };
+
+  try {
+    await updateArtifactMetadata(id.data, metadata);
+  } catch (error) {
+    return { error: messageFor(error, { action: "update-metadata", id: id.data }) };
+  }
+  revalidatePath(`/a/${id.data}`);
+  return { ok: true };
 }
 
 export async function deleteArtifactAction(formData: FormData): Promise<void> {

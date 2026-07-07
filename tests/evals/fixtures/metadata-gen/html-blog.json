@@ -1,0 +1,18 @@
+{
+  "id": "html-blog",
+  "label": "HTML blog article",
+  "kind": "html",
+  "contentType": "text/html",
+  "filename": "post.html",
+  "content": "<!doctype html><html><head><title>Why we moved off microservices</title></head><body><article><h1>Why we moved off microservices</h1><p>Eighteen months ago we split our monolith into fourteen services. Last quarter we merged most of them back. Here is what we learned about premature decomposition, distributed transactions, and the operational tax of a service mesh.</p><h2>The operational tax</h2><p>Every service needed its own dashboards, alerts, and on-call rotation. For a team of six, that overhead swamped any scaling benefit.</p></article></body></html>",
+  "expectedTags": [
+    "blog",
+    "article",
+    "microservices",
+    "architecture",
+    "engineering",
+    "software",
+    "monolith"
+  ],
+  "forbidden": []
+}

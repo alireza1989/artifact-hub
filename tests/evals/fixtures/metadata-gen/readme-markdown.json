@@ -1,0 +1,18 @@
+{
+  "id": "readme-markdown",
+  "label": "Project README (Markdown)",
+  "kind": "markdown",
+  "contentType": "text/markdown",
+  "filename": "README.md",
+  "content": "# Tigris\n\nTigris is a tiny, dependency-free key-value store for the browser built on IndexedDB.\n\n## Install\n\n```\nnpm install tigris-kv\n```\n\n## Usage\n\n```js\nimport { open } from 'tigris-kv'\nconst db = await open('my-app')\nawait db.set('user', { name: 'Ada' })\nconst user = await db.get('user')\n```\n\n## Features\n\n- Promise-based API\n- Automatic schema migrations\n- 2 KB gzipped\n\n## License\n\nMIT",
+  "expectedTags": [
+    "readme",
+    "documentation",
+    "javascript",
+    "database",
+    "library",
+    "indexeddb",
+    "storage"
+  ],
+  "forbidden": []
+}

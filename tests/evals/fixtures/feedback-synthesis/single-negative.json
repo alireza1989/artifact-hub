@@ -1,0 +1,14 @@
+{
+  "id": "single-negative",
+  "label": "One loud negative among neutrals (mixed)",
+  "comments": [
+    { "authorName": "Dana", "body": "Looks fine to me overall." },
+    { "authorName": "Priya", "body": "No strong feelings, seems okay." },
+    {
+      "authorName": "Leo",
+      "body": "This is genuinely bad — the onboarding flow is confusing and I got stuck twice trying to create my first project. We can't ship this as-is."
+    }
+  ],
+  "expect": { "sentiment": "mixed" },
+  "forbidden": []
+}

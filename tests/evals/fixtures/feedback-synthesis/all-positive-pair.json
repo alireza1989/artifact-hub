@@ -1,0 +1,16 @@
+{
+  "id": "all-positive-pair",
+  "label": "Minimal pair, both positive (threshold case)",
+  "comments": [
+    {
+      "authorName": "Dana",
+      "body": "Really clean report — the summary chart tells the whole story at a glance."
+    },
+    {
+      "authorName": "Priya",
+      "body": "Nicely done. Numbers are easy to follow and the layout is tidy."
+    }
+  ],
+  "expect": { "consensus": true, "sentiment": "positive" },
+  "forbidden": []
+}

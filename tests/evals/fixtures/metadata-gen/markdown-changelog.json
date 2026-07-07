@@ -1,0 +1,17 @@
+{
+  "id": "markdown-changelog",
+  "label": "Release changelog (Markdown)",
+  "kind": "markdown",
+  "contentType": "text/markdown",
+  "filename": "CHANGELOG.md",
+  "content": "# Changelog\n\n## 2.1.0 — 2026-06-30\n\n### Added\n- Dark mode across all dashboards.\n- CSV export on the reports page.\n\n### Fixed\n- Share links no longer expire an hour early in some time zones.\n- Fixed a crash when uploading files over 20 MB.\n\n## 2.0.1 — 2026-06-12\n\n### Fixed\n- Corrected billing totals for annual plans.",
+  "expectedTags": [
+    "changelog",
+    "release notes",
+    "markdown",
+    "documentation",
+    "version",
+    "software"
+  ],
+  "forbidden": []
+}

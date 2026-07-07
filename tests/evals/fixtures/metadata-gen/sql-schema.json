@@ -1,0 +1,10 @@
+{
+  "id": "sql-schema",
+  "label": "SQL schema migration",
+  "kind": "text",
+  "contentType": "application/sql",
+  "filename": "0001_init.sql",
+  "content": "CREATE TABLE users (\n  id BIGSERIAL PRIMARY KEY,\n  email TEXT NOT NULL UNIQUE,\n  created_at TIMESTAMPTZ NOT NULL DEFAULT now()\n);\n\nCREATE TABLE orders (\n  id BIGSERIAL PRIMARY KEY,\n  user_id BIGINT NOT NULL REFERENCES users(id),\n  total_cents INT NOT NULL,\n  status TEXT NOT NULL DEFAULT 'pending'\n);\n\nCREATE INDEX orders_user_idx ON orders(user_id);",
+  "expectedTags": ["sql", "database", "schema", "migration", "postgres", "ddl"],
+  "forbidden": []
+}

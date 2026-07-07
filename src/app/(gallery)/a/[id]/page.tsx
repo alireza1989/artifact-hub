@@ -2,15 +2,23 @@ import { Download } from "lucide-react";
 import { notFound } from "next/navigation";
 import { ArtifactPreview } from "@/components/artifacts/preview";
 import { TagChip } from "@/components/artifacts/tag-chip";
+import { CommentList } from "@/components/feedback/comment-list";
+import { SynthesisCard } from "@/components/feedback/synthesis-card";
 import { ArtifactNotFoundError, getArtifact } from "@/core/artifacts";
+import { getFeedback } from "@/core/feedback";
 import { listShareLinks } from "@/core/sharing";
 import { hasValidSession } from "@/lib/auth/session";
 import { formatBytes, formatDate, kindLabel } from "@/lib/format";
 import { artifactIdSchema } from "@/lib/validation";
 import { DeleteArtifactButton } from "./delete-button";
+import { MetadataEditor } from "./metadata-editor";
 import { ShareManager } from "./share-manager";
 
 export const dynamic = "force-dynamic";
+
+function sameTags(a: string[], b: string[]): boolean {
+  return a.length === b.length && a.every((tag, i) => tag === b[i]);
+}
 
 export default async function ArtifactPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -24,7 +32,20 @@ export default async function ArtifactPage({ params }: { params: Promise<{ id: s
   }
 
   const canManage = await hasValidSession();
-  const shareLinks = canManage ? await listShareLinks(artifact.id) : [];
+  // getFeedback lazily (re)generates the synthesis when there are ≥2 comments.
+  const [shareLinks, feedback] = await Promise.all([
+    canManage ? listShareLinks(artifact.id) : Promise.resolve([]),
+    getFeedback(artifact.id),
+  ]);
+
+  // A field still shows the "suggested" badge only while its value equals what the
+  // AI proposed; editing it makes the badge disappear (PLAN §5.1).
+  const ai = artifact.aiGeneratedMeta;
+  const suggested = {
+    title: !!ai?.title && ai.title === artifact.title,
+    description: !!ai?.description && ai.description === (artifact.description ?? ""),
+    tags: !!ai?.tags && sameTags(ai.tags, artifact.tags),
+  };
 
   return (
     <div className="space-y-6">
@@ -62,6 +83,16 @@ export default async function ArtifactPage({ params }: { params: Promise<{ id: s
             </div>
           ) : null}
 
+          {canManage ? (
+            <MetadataEditor
+              artifactId={artifact.id}
+              title={artifact.title}
+              description={artifact.description ?? ""}
+              tags={artifact.tags}
+              suggested={suggested}
+            />
+          ) : null}
+
           <div className="space-y-2">
             <a
               href={`/raw/${artifact.id}?download`}
@@ -75,6 +106,16 @@ export default async function ArtifactPage({ params }: { params: Promise<{ id: s
           {canManage ? <ShareManager artifactId={artifact.id} links={shareLinks} /> : null}
         </aside>
       </div>
+
+      <section className="space-y-4">
+        <h2 className="text-lg font-semibold tracking-tight">
+          Feedback{feedback.total > 0 ? ` (${feedback.total})` : ""}
+        </h2>
+        {feedback.summary ? (
+          <SynthesisCard summary={feedback.summary} comments={feedback.comments} />
+        ) : null}
+        <CommentList comments={feedback.comments} />
+      </section>
     </div>
   );
 }

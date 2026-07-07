@@ -18,4 +18,11 @@ export {
   type ArtifactListResult,
   listArtifacts,
 } from "./list";
+export {
+  type MetadataField,
+  type PublishArtifactInput,
+  type PublishArtifactResult,
+  publishArtifact,
+} from "./publish";
 export { type SniffInput, type SniffResult, sniffArtifact } from "./sniff";
+export { updateArtifactMetadata } from "./update";

@@ -1,0 +1,10 @@
+{
+  "id": "pdf-excerpt",
+  "label": "Report excerpt (as extracted text)",
+  "kind": "text",
+  "contentType": "text/plain",
+  "filename": "annual-report-excerpt.txt",
+  "content": "ACME Corporation — 2025 Annual Report (excerpt)\n\nLetter to Shareholders\n\nFiscal 2025 was a year of disciplined growth. Revenue rose 18% to $412M, driven by expansion in our cloud segment, while operating margin improved to 21%. We returned $60M to shareholders through buybacks and continued to invest in R&D, which now represents 14% of revenue.\n\nLooking ahead, we expect continued momentum in cloud, tempered by macroeconomic uncertainty in our hardware business.",
+  "expectedTags": ["annual report", "finance", "report", "shareholders", "business", "financial"],
+  "forbidden": []
+}

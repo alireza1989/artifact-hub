@@ -105,7 +105,8 @@ export function ShareComments({ token, comments }: { token: string; comments: Co
           {optimistic.map((comment) => (
             <li
               key={comment.id}
-              className={`border-border bg-card rounded-lg border p-4 ${comment.pending ? "opacity-60" : ""}`}
+              id={`c-${comment.id}`}
+              className={`border-border bg-card scroll-mt-20 rounded-lg border p-4 ${comment.pending ? "opacity-60" : ""}`}
             >
               <div className="flex items-baseline justify-between gap-3">
                 <span className="text-sm font-medium">{comment.authorName}</span>
