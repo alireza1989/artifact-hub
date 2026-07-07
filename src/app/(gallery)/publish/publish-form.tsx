@@ -60,7 +60,7 @@ export function PublishForm() {
         <span className="text-sm font-medium">
           {fileName ?? "Drag & drop, paste, or click to choose a file"}
         </span>
-        <span className="text-muted-foreground text-xs">Up to 25 MB · any file type</span>
+        <span className="text-muted-foreground text-xs">Up to 4 MB · any file type</span>
         <input
           ref={inputRef}
           type="file"

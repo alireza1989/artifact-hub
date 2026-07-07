@@ -60,3 +60,25 @@ tests/     unit · integration · evals
 
 Dependency rule: `app/` and `mcp/` depend on `core/`; `core/` depends on `lib/`
 and `db/`; nothing depends on `app/`.
+
+## Upload limits & known constraints
+
+The stored-artifact hard cap is **25 MB** (`MAX_ARTIFACT_BYTES`, enforced
+server-side from the sniffed byte length). The maximum you can actually upload,
+however, is set by the *transport*, because on Vercel a serverless function's
+request body is capped at ~4.5 MB — so how bytes reach the server matters:
+
+| Surface | How content is sent | Practical ceiling | Why |
+|---|---|---|---|
+| Web publish form | multipart via a Next **Server Action** | **~4 MB** | `serverActions.bodySizeLimit` is set to `4mb` in `next.config.ts`, just under Vercel's ~4.5 MB body cap. Uploading a larger file 500s in the framework *before* the handler runs. |
+| REST / MCP inline | `content` (text) or `contentBase64` (binary) in the request body | **~3 MB decoded** | The body itself is capped at ~4.5 MB and base64 inflates ~1.37×. |
+| REST / MCP `sourceUrl` | a public `https` URL the **server** streams | **25 MB** (the full cap) | Bytes never ride the client→function request body; the server fetches them (SSRF-guarded: DNS-resolved-IP allowlisting, https-only, redirect cap, 25 MB stream abort). |
+
+So the full 25 MB is reachable today only via the `sourceUrl` path; the web form
+and inline API/MCP paths are bounded by the request-body cap. The web form's
+copy reflects its real ~4 MB limit.
+
+**Follow-up (deferred):** to let the web form reach the full 25 MB, upload
+client-direct-to-Blob (browser → Vercel Blob via a short-lived token) and pass
+the resulting URL to the server, bypassing the Server-Action body cap. Tracked in
+`PLAN.md` (Decision Log, 2026-07-06 size-handling entry).
