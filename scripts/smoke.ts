@@ -47,7 +47,16 @@ async function main(): Promise<void> {
   }
 
   const endpoint = new URL("/api/mcp", BASE_URL);
-  console.log(`Smoke target: ${endpoint.origin}${endpoint.pathname}\n`);
+  console.log(`Smoke target: ${endpoint.origin}\n`);
+
+  // §8: gallery loads. The browse page is the front door — assert it serves HTML.
+  const gallery = await fetch(new URL("/", BASE_URL));
+  const galleryBody = gallery.ok ? await gallery.text() : "";
+  step(
+    "gallery loads",
+    gallery.ok && galleryBody.includes("Artifact Hub"),
+    gallery.ok ? "" : `status ${gallery.status}`,
+  );
 
   const client = new Client({ name: "artifact-hub-smoke", version: "1.0.0" });
   const transport = new StreamableHTTPClientTransport(endpoint, {
@@ -71,23 +80,37 @@ async function main(): Promise<void> {
     !(await client.callTool({ name: "search_artifacts", arguments: { limit: 3 } })).isError,
   );
 
+  // §8: publish via the REST API (bearer-authenticated write). Titled/tagged as
+  // smoke noise so `pnpm db:seed --reset` can sweep any leftover if cleanup fails.
   const stamp = new Date().toISOString();
   const shareTitle = `Smoke test ${stamp}`;
-  const published = await client.callTool({
-    name: "publish_artifact",
-    arguments: {
-      content: `<!doctype html><meta charset="utf-8"><h1>Smoke ${stamp}</h1>`,
+  const publishRes = await fetch(new URL("/api/v1/artifacts", BASE_URL), {
+    method: "POST",
+    headers: { "content-type": "application/json", Authorization: `Bearer ${TOKEN}` },
+    body: JSON.stringify({
+      content: `<!doctype html><meta charset="utf-8"><h1>${shareTitle}</h1>`,
       filename: "smoke.html",
       title: shareTitle,
       tags: ["smoke-test"],
-    },
+    }),
   });
-  const artifactId = structured<{ id: string }>(published)?.id;
+  const artifactId = publishRes.ok ? ((await publishRes.json()) as { id?: string }).id : undefined;
   step(
-    "publish_artifact (authed)",
+    "publish via REST API",
     Boolean(artifactId),
-    artifactId ? `id ${artifactId}` : "no id returned",
+    artifactId ? `id ${artifactId}` : `status ${publishRes.status}`,
   );
+
+  // §8: artifact page renders — the detail page must serve the published title.
+  if (artifactId) {
+    const page = await fetch(new URL(`/a/${artifactId}`, BASE_URL));
+    const pageBody = page.ok ? await page.text() : "";
+    step(
+      "artifact page renders",
+      page.ok && pageBody.includes(shareTitle),
+      page.ok ? "" : `status ${page.status}`,
+    );
+  }
 
   let shareUrl: string | undefined;
   let linkId: string | undefined;

@@ -2,7 +2,12 @@
 // spam is the obvious abuse vector — PLAN §Phase 5). NOTE: state lives in process
 // memory, so on Vercel Fluid Compute it is NOT shared across instances — it
 // throttles the common case (one spammer landing on one instance) but is not a hard
-// guarantee. Durable limiting (a KV/Postgres counter) is the Phase-5 hardening.
+// guarantee.
+//
+// Decision (PLAN Decision Log 2026-07-07): in-memory + the honeypot on the only
+// public write (share-view comments, itself token-gated to one artifact) is
+// accepted for single-team v1. A durable KV/Postgres counter is the documented
+// scale-out path if abuse ever materializes — deliberately not built now.
 type Window = { count: number; resetAt: number };
 
 const buckets = new Map<string, Window>();

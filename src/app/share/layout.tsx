@@ -11,7 +11,9 @@ export default function ShareLayout({ children }: { children: React.ReactNode })
           </span>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-8">{children}</main>
+      <main id="main" className="mx-auto w-full max-w-4xl flex-1 px-6 py-8">
+        {children}
+      </main>
     </div>
   );
 }

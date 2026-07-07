@@ -106,7 +106,8 @@
       "Skill(claude-api)",
       "Skill(claude-api:*)",
       "Bash(export COREPACK_ENABLE_DOWNLOAD_PROMPT=0)",
-      "Bash(echo \"pnpm: $\\(pnpm --version 2>&1\\)\")"
+      "Bash(echo \"pnpm: $\\(pnpm --version 2>&1\\)\")",
+      "Bash(node_modules/.bin/tsx --version)"
     ],
     "deny": [
       "Read(.env)",

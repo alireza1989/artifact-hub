@@ -1,0 +1,53 @@
+name: Smoke (post-deploy)
+
+# End-to-end smoke check against a live deployment (PLAN §6 E2E / §8). Runs after
+# a Vercel *production* deploy succeeds — Vercel posts a `deployment_status` event
+# to GitHub whose `target_url` is the deployed URL — and can also be run by hand
+# against any URL.
+on:
+  deployment_status:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "Base URL to smoke-test (defaults to the ADMIN/APP prod URL secret)"
+        required: false
+
+concurrency:
+  group: smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    # deployment_status fires for every state (pending/success/…) and every
+    # environment; only run on a successful Production deploy.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.deployment_status.state == 'success' &&
+       github.event.deployment_status.environment == 'Production')
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Smoke
+        env:
+          # Prefer the deploy's own URL; fall back to a configured prod URL secret.
+          SMOKE_BASE_URL: >-
+            ${{ github.event.deployment_status.target_url ||
+                inputs.base_url ||
+                secrets.SMOKE_BASE_URL }}
+          ADMIN_API_TOKEN: ${{ secrets.ADMIN_API_TOKEN }}
+        run: |
+          if [ -z "$ADMIN_API_TOKEN" ] || [ -z "$SMOKE_BASE_URL" ]; then
+            echo "SMOKE_BASE_URL and ADMIN_API_TOKEN must be configured; skipping."
+            exit 0
+          fi
+          pnpm smoke

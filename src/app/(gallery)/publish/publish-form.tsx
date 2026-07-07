@@ -52,7 +52,7 @@ export function PublishForm() {
       }}
     >
       <label
-        className={`border-border hover:bg-muted/40 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-6 py-12 text-center transition-colors ${
+        className={`border-border hover:bg-muted/40 focus-within:ring-3 focus-within:ring-ring/50 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-6 py-12 text-center transition-colors ${
           dragging ? "border-primary bg-muted/40" : ""
         }`}
       >
@@ -65,6 +65,7 @@ export function PublishForm() {
           ref={inputRef}
           type="file"
           name="file"
+          aria-label="Choose a file to publish"
           className="sr-only"
           onChange={(e) => adopt(e.target.files)}
         />

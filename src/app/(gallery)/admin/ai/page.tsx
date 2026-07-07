@@ -39,10 +39,18 @@ export default async function AdminAiPage() {
             <table className="w-full text-left text-sm">
               <thead className="text-muted-foreground border-border border-b text-xs uppercase">
                 <tr>
-                  <th className="px-3 py-2 font-medium">When</th>
-                  <th className="px-3 py-2 font-medium">Feature</th>
-                  <th className="px-3 py-2 font-medium">Outcome</th>
-                  <th className="px-3 py-2 font-medium">Detail</th>
+                  <th scope="col" className="px-3 py-2 font-medium">
+                    When
+                  </th>
+                  <th scope="col" className="px-3 py-2 font-medium">
+                    Feature
+                  </th>
+                  <th scope="col" className="px-3 py-2 font-medium">
+                    Outcome
+                  </th>
+                  <th scope="col" className="px-3 py-2 font-medium">
+                    Detail
+                  </th>
                 </tr>
               </thead>
               <tbody>

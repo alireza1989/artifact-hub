@@ -18,7 +18,7 @@
     "eval": "vitest run --config vitest.eval.config.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:seed": "node src/db/seed.ts",
+    "db:seed": "tsx src/db/seed.ts",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
@@ -58,6 +58,7 @@
     "drizzle-kit": "^0.31.10",
     "lefthook": "^2.1.9",
     "tailwindcss": "^4",
+    "tsx": "^4.23.0",
     "typescript": "^5",
     "vitest": "^4.1.9"
   }

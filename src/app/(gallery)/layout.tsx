@@ -6,9 +6,21 @@ import { Button } from "@/components/ui/button";
 export default function GalleryLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-dvh flex-col">
+      <a
+        href="#main"
+        className="bg-primary text-primary-foreground sr-only z-50 rounded-md px-3 py-2 text-sm font-medium focus:not-sr-only focus:absolute focus:top-3 focus:left-3"
+      >
+        Skip to content
+      </a>
       <header className="border-border sticky top-0 z-10 border-b bg-background/80 backdrop-blur">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-6 py-3">
-          <Link href="/" className="font-semibold tracking-tight">
+        <nav
+          aria-label="Primary"
+          className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-6 py-3"
+        >
+          <Link
+            href="/"
+            className="rounded-sm font-semibold tracking-tight focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+          >
             Artifact Hub
           </Link>
           <Button asChild size="sm">
@@ -16,9 +28,11 @@ export default function GalleryLayout({ children }: { children: React.ReactNode 
               <Plus /> Publish
             </Link>
           </Button>
-        </div>
+        </nav>
       </header>
-      <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">{children}</main>
+      <main id="main" className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">
+        {children}
+      </main>
     </div>
   );
 }
