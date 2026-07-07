@@ -1,4 +1,4 @@
-import { and, arrayOverlaps, asc, desc, eq, type SQL, sql } from "drizzle-orm";
+import { and, arrayOverlaps, asc, desc, eq, gte, type SQL, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import type { Artifact } from "@/db/schema";
 import { artifacts, comments } from "@/db/schema";
@@ -25,6 +25,7 @@ export async function listArtifacts(query: ListQuery): Promise<ArtifactListResul
   if (query.tags && query.tags.length > 0) {
     conditions.push(arrayOverlaps(artifacts.tags, query.tags));
   }
+  if (query.since) conditions.push(gte(artifacts.createdAt, query.since));
   const where = conditions.length > 0 ? and(...conditions) : undefined;
 
   // Relevance-first when searching, otherwise chronological.

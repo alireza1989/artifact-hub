@@ -5,7 +5,7 @@ import { BrandMark } from "@/components/brand/wordmark";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { listArtifacts } from "@/core/artifacts";
+import { searchArtifactsNaturally } from "@/core/ai";
 import { type ListQuery, listQuerySchema } from "@/lib/validation";
 
 export const dynamic = "force-dynamic";
@@ -36,7 +36,9 @@ export default async function GalleryPage({
     sort: first(sp.sort),
     offset: first(sp.offset),
   });
-  const { items, total, limit, offset } = await listArtifacts(query);
+  // Phase 6.3: natural-language queries are translated to filters (keyword
+  // queries bypass the LLM; failures fall back to raw FTS — same box, no AI UI).
+  const { items, total, limit, offset } = await searchArtifactsNaturally(query);
 
   const activeTag = query.tags?.[0];
   const hasFilters = Boolean(query.q || query.kind || activeTag);

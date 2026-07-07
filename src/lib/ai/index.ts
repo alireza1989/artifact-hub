@@ -31,4 +31,13 @@ export {
   metadataJsonSchema,
   parseMetadata,
 } from "./prompts/metadata-gen.v1";
+export {
+  buildNlSearchInstruction,
+  NL_SEARCH_MAX_TOKENS,
+  NL_SEARCH_PROMPT_VERSION,
+  NL_SEARCH_SYSTEM,
+  type NlSearchFilters,
+  nlSearchJsonSchema,
+  parseNlSearch,
+} from "./prompts/nl-search.v1";
 export { BUDGET_EXCEEDED_ERROR, type LlmOutcome } from "./telemetry";

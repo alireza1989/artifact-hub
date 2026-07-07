@@ -1,0 +1,6 @@
+{
+  "id": "csv-data",
+  "label": "Kind synonym: spreadsheets",
+  "query": "the sales data spreadsheets someone uploaded this month",
+  "expect": { "kind": "csv", "sinceDaysMin": 20, "sinceDaysMax": 45, "termsInclude": ["sales"] }
+}

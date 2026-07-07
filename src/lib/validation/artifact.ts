@@ -62,6 +62,9 @@ export const LIST_LIMIT_MAX = 50;
 
 // Query for gallery + REST list + MCP search_artifacts. Coercions accept raw URL
 // query strings; `tags` accepts a comma-separated string or repeated params.
+// `since` (Phase 6.3, additive) filters to artifacts created at/after a moment —
+// it backs the NL-search "from last week" style queries but is a plain filter any
+// caller may pass.
 export const listQuerySchema = z.object({
   q: z.string().trim().min(1).max(200).optional(),
   kind: artifactKindSchema.optional(),
@@ -70,6 +73,7 @@ export const listQuerySchema = z.object({
     .transform((value) => (Array.isArray(value) ? value : value.split(",")))
     .pipe(tagsSchema)
     .optional(),
+  since: z.coerce.date().optional(),
   sort: z.enum(["recent", "oldest"]).default("recent"),
   limit: z.coerce.number().int().min(1).max(LIST_LIMIT_MAX).default(LIST_LIMIT_DEFAULT),
   offset: z.coerce.number().int().min(0).default(0),

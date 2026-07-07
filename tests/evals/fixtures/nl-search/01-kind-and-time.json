@@ -1,0 +1,6 @@
+{
+  "id": "kind-and-time",
+  "label": "Kind + relative time",
+  "query": "html mockups with feedback from last week",
+  "expect": { "kind": "html", "sinceDaysMin": 5, "sinceDaysMax": 10, "termsInclude": ["mockup"] }
+}

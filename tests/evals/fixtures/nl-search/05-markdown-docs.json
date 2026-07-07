@@ -1,0 +1,6 @@
+{
+  "id": "markdown-docs",
+  "label": "Kind synonym: write-ups",
+  "query": "write-ups and docs that mention the migration plan",
+  "expect": { "kind": "markdown", "termsInclude": ["migration"] }
+}

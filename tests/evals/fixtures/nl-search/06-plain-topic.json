@@ -1,0 +1,6 @@
+{
+  "id": "plain-topic",
+  "label": "No filters, terms only",
+  "query": "everything related to the quarterly revenue report",
+  "expect": { "kindNull": true, "termsInclude": ["revenue"] }
+}

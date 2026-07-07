@@ -1,16 +1,19 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { beforeAll, describe, expect, it } from "vitest";
-import { suggestMetadata, synthesizeComments } from "@/core/ai";
+import { suggestMetadata, synthesizeComments, translateNlQuery } from "@/core/ai";
 import type { ArtifactKind } from "@/lib/validation";
 import { loadFixtures } from "./loader";
 import {
   average,
   type MetadataFixture,
   type MetadataScore,
+  type NlSearchFixture,
+  type NlSearchScore,
   rate,
   type SynthesisFixture,
   type SynthesisScore,
   scoreMetadata,
+  scoreNlSearch,
   scoreSynthesis,
   THRESHOLDS,
 } from "./score";
@@ -22,6 +25,7 @@ import {
 
 let metaScores: MetadataScore[] = [];
 let synthScores: SynthesisScore[] = [];
+let nlScores: NlSearchScore[] = [];
 
 function bytesFor(fixture: MetadataFixture): Uint8Array {
   if (fixture.contentBase64) return new Uint8Array(Buffer.from(fixture.contentBase64, "base64"));
@@ -54,6 +58,13 @@ beforeAll(async () => {
     synthScores.push(scoreSynthesis(fixture, summary, validIds));
   }
 
+  const nlFixtures = loadFixtures<NlSearchFixture>("nl-search");
+  nlScores = [];
+  for (const fixture of nlFixtures) {
+    const filters = await translateNlQuery(fixture.query);
+    nlScores.push(scoreNlSearch(fixture, filters));
+  }
+
   const overlaps = metaScores.map((s) => s.tagOverlap).filter((v): v is number => v !== null);
 
   const report = {
@@ -73,6 +84,13 @@ beforeAll(async () => {
       injectionResistantRate: rate(synthScores.map((s) => s.injectionResistant)),
       avgCoverage: average(synthScores.map((s) => s.coverage)),
       scores: synthScores,
+    },
+    nlSearch: {
+      count: nlScores.length,
+      schemaValidRate: rate(nlScores.map((s) => s.schemaValid)),
+      injectionResistantRate: rate(nlScores.map((s) => s.injectionResistant)),
+      avgFilterAccuracy: average(nlScores.map((s) => s.filterAccuracy)),
+      scores: nlScores,
     },
     thresholds: THRESHOLDS,
   };
@@ -128,6 +146,24 @@ describe("feedback-synthesis eval", () => {
   });
 });
 
+describe("nl-search eval", () => {
+  it("every query yields a usable translation (schema validity 100%)", () => {
+    expect(rate(nlScores.map((s) => s.schemaValid))).toBeGreaterThanOrEqual(
+      THRESHOLDS.nlSearchSchemaValidRate,
+    );
+  });
+  it("resists injection typed into the search box", () => {
+    expect(rate(nlScores.map((s) => s.injectionResistant))).toBeGreaterThanOrEqual(
+      THRESHOLDS.nlSearchInjectionResistantRate,
+    );
+  });
+  it("average filter accuracy (kind/terms/time extraction) clears the floor", () => {
+    expect(average(nlScores.map((s) => s.filterAccuracy))).toBeGreaterThanOrEqual(
+      THRESHOLDS.nlSearchAvgFilterAccuracy,
+    );
+  });
+});
+
 function printScorecard(report: {
   metadata: {
     schemaValidRate: number;
@@ -141,6 +177,12 @@ function printScorecard(report: {
     traceableRate: number;
     injectionResistantRate: number;
     avgCoverage: number;
+    count: number;
+  };
+  nlSearch: {
+    schemaValidRate: number;
+    injectionResistantRate: number;
+    avgFilterAccuracy: number;
     count: number;
   };
 }) {
@@ -158,6 +200,10 @@ function printScorecard(report: {
     `  traceable:           ${pct(report.synthesis.traceableRate)}  (≥ ${pct(THRESHOLDS.synthesisTraceableRate)})`,
     `  injection resistant: ${pct(report.synthesis.injectionResistantRate)}  (≥ ${pct(THRESHOLDS.synthesisInjectionResistantRate)})`,
     `  avg key coverage:    ${pct(report.synthesis.avgCoverage)}  (≥ ${pct(THRESHOLDS.synthesisAvgCoverage)})`,
+    `nl-search (${report.nlSearch.count} fixtures)`,
+    `  schema valid:        ${pct(report.nlSearch.schemaValidRate)}  (≥ ${pct(THRESHOLDS.nlSearchSchemaValidRate)})`,
+    `  injection resistant: ${pct(report.nlSearch.injectionResistantRate)}  (≥ ${pct(THRESHOLDS.nlSearchInjectionResistantRate)})`,
+    `  avg filter accuracy: ${pct(report.nlSearch.avgFilterAccuracy)}  (≥ ${pct(THRESHOLDS.nlSearchAvgFilterAccuracy)})`,
     "report written to evals/report.json",
     "══════════════════════════",
     "",

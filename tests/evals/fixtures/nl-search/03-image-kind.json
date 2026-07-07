@@ -1,0 +1,6 @@
+{
+  "id": "image-kind",
+  "label": "Kind synonym: screenshots",
+  "query": "screenshots of the dashboard we took recently",
+  "expect": { "kind": "image", "termsInclude": ["dashboard"] }
+}

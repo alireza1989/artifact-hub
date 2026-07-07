@@ -5,6 +5,7 @@ export const AI_MODEL = "claude-haiku-4-5-20251001";
 export const AI_FEATURE_MODELS = {
   "metadata-gen": AI_MODEL,
   "feedback-synthesis": AI_MODEL,
+  "nl-search": AI_MODEL,
 } as const;
 
 export type AiFeature = keyof typeof AI_FEATURE_MODELS;

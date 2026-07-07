@@ -1,0 +1,6 @@
+{
+  "id": "question",
+  "label": "Question phrasing",
+  "query": "is there a pdf of the investor deck?",
+  "expect": { "kind": "pdf", "termsInclude": ["investor"] }
+}

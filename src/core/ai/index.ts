@@ -8,6 +8,12 @@ export {
   suggestMetadata,
 } from "./metadata";
 export {
+  looksNaturalQuery,
+  mergeNlFilters,
+  searchArtifactsNaturally,
+  translateNlQuery,
+} from "./nl-search";
+export {
   type AiFailure,
   type AiWindowStats,
   getAiWindowStats,

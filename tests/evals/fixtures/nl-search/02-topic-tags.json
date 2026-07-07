@@ -1,0 +1,6 @@
+{
+  "id": "topic-tags",
+  "label": "Topic extraction",
+  "query": "anything we published about onboarding and signup flows",
+  "expect": { "termsOrTagsInclude": ["onboarding", "signup"] }
+}
