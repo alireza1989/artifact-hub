@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   buildAuthHeaderSnippet,
+  buildClaudeCodeCommand,
   buildDesktopConfigSnippet,
   mcpEndpointUrl,
 } from "@/lib/mcp-snippets";
@@ -62,10 +63,30 @@ export function ConnectPanel({ baseUrl, token }: { baseUrl: string; token?: stri
 
       <Card size="sm">
         <CardHeader>
-          <CardTitle>2 · stdio clients (via mcp-remote)</CardTitle>
+          <CardTitle>2 · Claude Code (one command)</CardTitle>
           <CardDescription>
-            For clients that only speak stdio, add this to{" "}
-            <code className="bg-muted rounded px-1 text-xs">claude_desktop_config.json</code>:
+            Claude Code speaks the remote protocol natively — run this in your terminal (add{" "}
+            <code className="bg-muted rounded px-1 text-xs">--scope user</code> to keep it across
+            projects):
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <SnippetBlock text={buildClaudeCodeCommand(baseUrl, effectiveToken)} />
+        </CardContent>
+      </Card>
+
+      <Card size="sm">
+        <CardHeader>
+          <CardTitle>3 · Claude Desktop / stdio clients (via mcp-remote)</CardTitle>
+          <CardDescription>
+            Add this to{" "}
+            <code className="bg-muted rounded px-1 text-xs">claude_desktop_config.json</code>{" "}
+            (Settings → Developer → Edit Config), then restart the app. The no-space{" "}
+            <code className="bg-muted rounded px-1 text-xs">
+              Authorization:$&#123;AUTH_HEADER&#125;
+            </code>{" "}
+            form is deliberate — mcp-remote substitutes it from{" "}
+            <code className="bg-muted rounded px-1 text-xs">env</code>.
           </CardDescription>
         </CardHeader>
         <CardContent>

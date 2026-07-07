@@ -42,4 +42,23 @@ export function getDb(): Db {
   return db;
 }
 
+// Raw-SQL escape hatch results differ by driver: postgres.js returns an iterable
+// RowList (an Array subclass), the Neon serverless driver returns a node-postgres
+// style `{ rows: [...] }` object. Query-builder results are uniform — only
+// `db.execute(sql\`...\`)` diverges, so every execute() SELECT must go through
+// this normalizer. (Found the hard way: spreading the result worked in every
+// postgres.js-backed test and crashed only on prod/Neon — /admin/tags and
+// hub_stats, 2026-07-07.)
+export function rowsOf<T>(result: unknown): T[] {
+  if (Array.isArray(result)) return result as T[];
+  if (
+    typeof result === "object" &&
+    result !== null &&
+    Array.isArray((result as { rows?: unknown }).rows)
+  ) {
+    return (result as { rows: T[] }).rows;
+  }
+  return [];
+}
+
 export { schema };

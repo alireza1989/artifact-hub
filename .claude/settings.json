@@ -111,7 +111,8 @@
       "Bash(echo \"check exit: $?\")",
       "Bash(echo \"check: $?\")",
       "Bash(python3 -c ' *)",
-      "Bash(echo \"md lint: $?\")"
+      "Bash(echo \"md lint: $?\")",
+      "Bash(echo \"exit: $?\")"
     ],
     "deny": [
       "Read(.env)",

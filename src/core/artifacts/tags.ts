@@ -1,5 +1,5 @@
 import { arrayOverlaps, eq, sql } from "drizzle-orm";
-import { getDb } from "@/db";
+import { getDb, rowsOf } from "@/db";
 import { artifacts } from "@/db/schema";
 import { TAG_MAX_LENGTH, TAGS_MAX } from "@/lib/validation";
 
@@ -11,13 +11,15 @@ import { TAG_MAX_LENGTH, TAGS_MAX } from "@/lib/validation";
 export type TagUsage = { tag: string; count: number };
 
 export async function listTagUsage(): Promise<TagUsage[]> {
-  const rows = (await getDb().execute(sql`
-    select unnest(${artifacts.tags}) as tag, count(*)::int as n
-    from ${artifacts}
-    group by tag
-    order by n desc, tag asc
-  `)) as unknown as { tag: string; n: number }[];
-  return [...rows].map((r) => ({ tag: r.tag, count: r.n }));
+  const rows = rowsOf<{ tag: string; n: number }>(
+    await getDb().execute(sql`
+      select unnest(${artifacts.tags}) as tag, count(*)::int as n
+      from ${artifacts}
+      group by tag
+      order by n desc, tag asc
+    `),
+  );
+  return rows.map((r) => ({ tag: r.tag, count: r.n }));
 }
 
 export type TagMerge = { from: string[]; to: string };

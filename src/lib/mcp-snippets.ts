@@ -10,6 +10,11 @@ export function mcpEndpointUrl(baseUrl: string): string {
 }
 
 // claude_desktop_config.json for stdio-only clients, bridged via mcp-remote.
+// The header value goes through an env var and `Authorization:${AUTH_HEADER}`
+// carries NO space after the colon — Claude Desktop passes args verbatim (no
+// ${} interpolation of its own, plus a known bug with spaces inside args);
+// mcp-remote substitutes ${AUTH_HEADER} from `env` itself. This is the pattern
+// mcp-remote documents for exactly this situation.
 export function buildDesktopConfigSnippet(baseUrl: string, token?: string): string {
   return JSON.stringify(
     {
@@ -21,8 +26,10 @@ export function buildDesktopConfigSnippet(baseUrl: string, token?: string): stri
             "mcp-remote",
             mcpEndpointUrl(baseUrl),
             "--header",
-            `Authorization: Bearer ${token ?? TOKEN_PLACEHOLDER}`,
+            // biome-ignore lint/suspicious/noTemplateCurlyInString: literal on purpose — mcp-remote (not JS) substitutes ${AUTH_HEADER} from `env` at runtime.
+            "Authorization:${AUTH_HEADER}",
           ],
+          env: { AUTH_HEADER: `Bearer ${token ?? TOKEN_PLACEHOLDER}` },
         },
       },
     },
@@ -33,4 +40,13 @@ export function buildDesktopConfigSnippet(baseUrl: string, token?: string): stri
 
 export function buildAuthHeaderSnippet(token?: string): string {
   return `Authorization: Bearer ${token ?? TOKEN_PLACEHOLDER}`;
+}
+
+// Claude Code speaks Streamable HTTP natively (no mcp-remote bridge): one CLI
+// command registers the server, headers included.
+export function buildClaudeCodeCommand(baseUrl: string, token?: string): string {
+  return (
+    `claude mcp add --transport http artifact-hub ${mcpEndpointUrl(baseUrl)} ` +
+    `--header "Authorization: Bearer ${token ?? TOKEN_PLACEHOLDER}"`
+  );
 }

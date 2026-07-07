@@ -1,5 +1,5 @@
 import { gte, sql } from "drizzle-orm";
-import { getDb } from "@/db";
+import { getDb, rowsOf } from "@/db";
 import { artifacts, comments } from "@/db/schema";
 
 export type HubStats = {
@@ -22,13 +22,15 @@ export async function hubStats(): Promise<HubStats> {
     .select({ kind: artifacts.kind, n: sql<number>`count(*)::int` })
     .from(artifacts)
     .groupBy(artifacts.kind);
-  const tagRows = (await db.execute(sql`
-    select unnest(${artifacts.tags}) as tag, count(*)::int as n
-    from ${artifacts}
-    group by tag
-    order by n desc, tag asc
-    limit 10
-  `)) as unknown as { tag: string; n: number }[];
+  const tagRows = rowsOf<{ tag: string; n: number }>(
+    await db.execute(sql`
+      select unnest(${artifacts.tags}) as tag, count(*)::int as n
+      from ${artifacts}
+      group by tag
+      order by n desc, tag asc
+      limit 10
+    `),
+  );
   const [artifacts7d] = await db
     .select({ n: sql<number>`count(*)::int` })
     .from(artifacts)
@@ -44,7 +46,7 @@ export async function hubStats(): Promise<HubStats> {
   return {
     totalArtifacts: totalRow?.n ?? 0,
     byKind,
-    topTags: [...tagRows].map((r) => ({ tag: r.tag, count: r.n })),
+    topTags: tagRows.map((r) => ({ tag: r.tag, count: r.n })),
     last7d: { artifacts: artifacts7d?.n ?? 0, comments: comments7d?.n ?? 0 },
   };
 }

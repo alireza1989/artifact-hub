@@ -1,14 +1,23 @@
 # Artifact Hub — Demo Walkthrough
 
-A ~10-minute script demonstrating the full loop: publish → browse → share → external review → AI synthesis → conversational MCP — plus the admin console. Each act lists the actions, what to point at, and the fallback if something is slow. Use it as a recording checklist or a live-demo script.
+A ~10-minute script demonstrating the full loop: publish → browse → share → external review → AI synthesis → conversational MCP — plus the admin console. Each act lists the actions, what to point at, and the fallback if something is slow. Use it as a recording checklist or a live-demo script. After the script, the **[feature test checklist](#feature-test-checklist)** covers every workflow in the product for a systematic pass.
+
+**Demo deployment:** <https://artifact-hub-murex.vercel.app>
+
+**Demo team token** (`/unlock` for the web UI, bearer for REST/MCP writes — published deliberately for this demo since there's no per-user auth):
+
+```
+jYVPlXAWzhk16NcZ+wWTnjwSzqJUwlq9b5r/DG9cU0Dx+jLTCAs4I6+QwGanPfdq
+```
 
 ## Pre-demo checklist (10 minutes before)
 
 - [ ] `pnpm db:seed --reset` against prod — clean demo catalog (8 artifacts across every kind, comment sets that trigger synthesis, one active share link), test noise swept.
 - [ ] Production URL loads; gallery shows live previews (HTML cards render scaled pages, not icons).
 - [ ] `pnpm smoke` green against production.
-- [ ] Claude Desktop connected to `https://<host>/api/mcp` with the bearer token (Settings → Connectors — or copy it from the app's `/connect` page). Verify the 8 tools appear.
-- [ ] Browser: logged **out** window (external-reviewer view) + logged **in** window (owner view, `/unlock` done). Remember the session cookie is per-hostname.
+- [ ] Claude Desktop connected via the `mcp-remote` config from the README's *Connecting a reviewer via MCP* section (or the app's `/connect` page — same snippet with copy buttons). Restart Desktop after editing the config, then confirm the **8 artifact-hub tools** appear in the tools list.
+- [ ] (Alternative/additional client) Claude Code: `claude mcp add --transport http artifact-hub <url>/api/mcp --header "Authorization: Bearer <token>"` — verify with `/mcp` in a session. Same 8 tools, same prompts work.
+- [ ] Browser: logged **out** window (external-reviewer view) + logged **in** window (owner view — visit `/unlock`, paste the team token above). Remember the session cookie is per-hostname.
 - [ ] Have a small HTML file (or snippet to paste) ready to publish — something visual, e.g. a pricing-page mockup.
 - [ ] `/admin/ai` open in a tab — you'll return to it after the AI moments.
 
@@ -75,3 +84,83 @@ The centerpiece: the same platform, conversationally, from Claude Desktop.
 | Claude Desktop won't connect | `/connect` page on screen + `pnpm smoke` output shows the MCP round-trip working |
 | Synthesis card doesn't appear | It needs ≥2 comments; add one more, reload (regeneration is on-read) |
 | NL search returns nothing | Say so honestly — it fell back to raw FTS, which is the invariant being demonstrated |
+
+---
+
+## Feature test checklist
+
+A systematic pass over **every** workflow. Owner steps need the unlocked session (`/unlock` + the team token above); reviewer steps use a logged-out window. Expected outcomes in *italics*.
+
+### Publish & metadata
+
+- [ ] **Web publish, blank metadata**: `/publish`, drag an HTML file, leave all fields empty → *lands on the artifact page with title/description/tags filled, each carrying a "suggested" badge*.
+- [ ] **Paste-to-publish**: on `/publish`, paste text (⌘V) → *adopted as `pasted.txt`*.
+- [ ] **Manual metadata wins**: publish with a title typed → *your title kept, no badge on it*.
+- [ ] **Badge lifecycle**: edit a suggested field in the sidebar editor, save → *badge disappears for that field only*.
+- [ ] **Re-run AI suggestions**: sidebar → "Re-run AI suggestions" → *fields replaced, all badges return, toast confirms*.
+- [ ] **Oversized upload**: try a file > 4 MB on the web form → *clear size error, nothing published*.
+- [ ] **Every kind previews**: seed catalog — open one artifact per kind (HTML, image, SVG, PDF, Markdown, text/code, JSON, CSV) → *HTML sandboxed live render + Source tab; SVG/image inline; PDF viewer; Markdown rendered; CSV table; JSON pretty-printed*.
+- [ ] **Delete**: owner → Delete → confirm dialog → *back at gallery, artifact gone*.
+
+### Browse & search
+
+- [ ] **Gallery previews**: cards show live content (scaled HTML page, PDF first page, text snippet), not icons — *unreadable/legacy rows degrade to icons without breaking the page*.
+- [ ] **Keyword search**: one or two words → *instant FTS results; no AI call (check `/admin/ai` counts don't move)*.
+- [ ] **Search + type filter**: word + kind selected, and each alone, and neither → *all four form shapes work (regression: blank fields used to crash)*.
+- [ ] **Natural-language search**: "html mockups with feedback from last week" → *filtered results; an `nl-search` row appears in `/admin/ai`*.
+- [ ] **Tag chip filter**: click a tag on a card → *gallery filtered by that tag; "clear" resets*.
+- [ ] **Pagination**: with >24 artifacts → *Prev/Next; disabled at the bounds*.
+
+### Share & external review
+
+- [ ] **Create link**: artifact page → Share links → duration → Create → *one-time URL reveal + copy button; list shows Active with live countdown*.
+- [ ] **Open as reviewer** (logged-out): *read-only view, expiry banner, no app nav*.
+- [ ] **Unfurl**: paste the link into Slack (or `curl -s <url> | grep og:`) → *title/description/branded card; the link's view count does NOT increase*.
+- [ ] **Quote-anchored comment**: on a Markdown/text share, select a sentence → "Comment on this" → post → *quote chip above the comment; clicking it scrolls to and flashes the passage*.
+- [ ] **Pin-anchored comment**: on an image share, click a spot → post → *numbered pin on the image ↔ chip on the comment, jumps both ways*.
+- [ ] **Plain comment + honeypot/rate limit**: post normally → *optimistic append + toast*; post 6 quickly → *friendly rate-limit message*.
+- [ ] **Revoke**: owner revokes (per-artifact or `/admin/share-links`) → *reviewer reload shows the friendly "turned off" page*; expired links show the expired page — *never a 404*.
+
+### AI synthesis
+
+- [ ] **Threshold**: 0–1 comments → *no summary card at all*. 2+ → *card with consensus/disagreements/action items/sentiment*.
+- [ ] **Traceability**: click a citation chip on any bullet → *jumps to the cited comment*.
+- [ ] **Staleness**: add a new comment, reload the artifact page → *summary regenerates*.
+- [ ] **Force refresh**: owner → "Refresh summary" → *regenerated on the spot*.
+
+### MCP (Claude Desktop) — one prompt per tool
+
+- [ ] `publish_artifact` — *"Publish this HTML to the artifact hub: …"* → id returned, `aiFilled` reported, artifact visible in the gallery tagged source `mcp`.
+- [ ] `search_artifacts` — *"Find the pricing mockup on the hub"* → compact summaries with ids.
+- [ ] `get_artifact` — *"Show me its details"* → metadata + content preview.
+- [ ] `create_share_link` — *"Share it for 72 hours"* → working URL (opens in a browser).
+- [ ] `add_comment` — *"Comment on it as Alex: the CTA needs contrast"* → appears on the artifact page.
+- [ ] `get_feedback` — *"What's the feedback on it?"* → comments + synthesis (once ≥2).
+- [ ] `revoke_share_link` — *"Revoke that link"* → link dead in the browser.
+- [ ] `hub_stats` — *"What's new on the hub this week?"* → counts by kind/tag + recent activity.
+- [ ] **Auth gate**: remove the `AUTH_HEADER` env from the config, restart, try publishing → *clear auth error naming the fix; reads still work*.
+
+### Admin console (`/admin`, owner session)
+
+- [ ] **AI**: 24h/7d calls, cost, p50/p95, outcome chips, recent failures — *rows from everything tested above*.
+- [ ] **Artifacts**: search the table, Open → artifact page, Delete with confirm → *row gone*.
+- [ ] **Share links**: platform-wide inventory with status/views/last-viewed → *revoke works from here*.
+- [ ] **Comments**: newest-first feed → *delete a spam comment; the artifact's summary refreshes on next view*.
+- [ ] **Tags**: usage badges with counts → **Suggest cleanup** → *proposed merges as checkboxes* → uncheck one → **Apply** → *toast with affected-artifact count; gallery tags updated*.
+- [ ] **Gate**: open any `/admin` URL logged-out → *redirected to `/unlock`, no content leaked*.
+
+### Product chrome
+
+- [ ] **`/connect`**: logged-out → *snippets show `<YOUR_TEAM_TOKEN>` placeholder*; logged-in → *"include my token" toggle embeds it; copy buttons work*.
+- [ ] **Dark mode**: toggle in the gallery and share headers → *both themes readable everywhere, previews keep white canvases*.
+- [ ] **Empty/error states**: fresh search with no hits, `/a/unknown-id`, an expired share → *guided empty state, friendly 404, friendly expiry page*.
+
+### Automated gates (CI-equivalent, local)
+
+```bash
+pnpm check   # typecheck + lint
+pnpm test    # 250+ unit/integration tests (needs docker Postgres)
+pnpm build   # production build
+pnpm eval    # LLM evals vs live Haiku (costs tokens)
+pnpm smoke   # end-to-end vs the live deployment
+```
