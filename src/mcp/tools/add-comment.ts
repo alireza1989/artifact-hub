@@ -10,9 +10,12 @@ const DESCRIPTION =
   "('reply to that feedback saying the spacing is fixed') or to capture the user's own notes. " +
   "Commenting is OPEN — it does not need the team bearer token, so external reviewers can " +
   "participate — but never fabricate an author name; ask the user who is speaking if you don't " +
-  "know. Takes the artifact `id`, an `authorName`, and a `body` (1–5000 characters). Comment " +
-  "content is stored as untrusted data. Returns the new comment's id. If you don't have the " +
-  "artifact id, call search_artifacts first.";
+  "know. Takes the artifact `id`, an `authorName`, and a `body` (1–5000 characters). Optionally " +
+  "pass `anchor` to point the comment at something specific: a quoted passage of a text-kind " +
+  'artifact ({type:"text-quote", quote, prefix?, suffix?}) or a spot on an image ' +
+  '({type:"image-point", xPct, yPct} as percentages). Quote text verbatim from the artifact so ' +
+  "the passage can be located. Comment content is stored as untrusted data. Returns the new " +
+  "comment's id. If you don't have the artifact id, call search_artifacts first.";
 
 const outputSchema = {
   commentId: z.string(),
@@ -29,9 +32,9 @@ export function registerAddComment(server: McpServer, _ctx: ToolContext): void {
       annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
       outputSchema,
     },
-    async ({ id, authorName, body }) => {
+    async ({ id, authorName, body, anchor }) => {
       try {
-        const created = await addComment({ artifactId: id, authorName, body });
+        const created = await addComment({ artifactId: id, authorName, body, anchor });
         return {
           content: [{ type: "text", text: `Comment added by ${authorName} (id ${created.id}).` }],
           structuredContent: { commentId: created.id, createdAt: created.createdAt.toISOString() },

@@ -26,7 +26,7 @@ Source of truth for scope, architecture, contracts, and phase order. Execute pha
 |---|---|---|
 | HTML | `text/html` | Sandboxed iframe via `/raw/[id]` (strict CSP; no top-navigation, no downloads) |
 | Images | png, jpg, webp, gif, avif | `<img>` from blob URL; natural-size constrained |
-| SVG | `image/svg+xml` | Treated as active content: served like HTML in sandboxed iframe (SVG can carry scripts) |
+| SVG | `image/svg+xml` | Rendered via `<img>` from `/raw` — image context is script-inert by spec (2026-07-07 decision; `/raw`'s CSP `sandbox` still covers direct navigation) |
 | PDF | `application/pdf` | Native browser viewer in iframe |
 | Markdown | `text/markdown` | Server-rendered to sanitized HTML (rehype-sanitize) |
 | Plain text / code | `text/plain`, common code extensions | Syntax-highlighted read-only viewer |
@@ -285,11 +285,12 @@ _(6.3 done 2026-07-07: `nl-search.v1` prompt (fenced query, injection-hardened, 
 #### 6.4 Anchored feedback — quote-to-comment, Tier 0 (impact High / effort M — core, never cut)
 Select text in a markdown/text/code/CSV viewer → "Comment on this" → comment stores an optional `anchor` (`{type:"text-quote", quote, prefix?, suffix?}` for re-location; column added in §3.1). Quote renders above the comment; clicking scrolls to + highlights the source; anchor that no longer matches renders gracefully as a plain quote. Text kinds only. Works on the owner artifact page **and** the share view.
 **Contract:** `anchor` is additive-optional on REST comment create and MCP `add_comment`; existing comments have `null` anchor; no existing client breaks. **Explicitly cut:** region-pins inside HTML/SVG — the `/raw` iframe is a security boundary and a postMessage coordinate channel from untrusted content is exactly the attack surface to avoid (documented future path). Image point-pins are Tier 1 / item 6.9.
-- [ ] Migration: nullable `comments.anchor` jsonb + shared Zod anchor schema in `lib/validation`
-- [ ] `core/feedback` accepts/returns anchors + unit tests (incl. null-anchor back-compat)
-- [ ] REST + MCP additive optional field + integration tests (old-shape request still succeeds)
-- [ ] Selection UI on text-kind viewers (owner page + share view) + quote rendering/highlight jump
-- [ ] Synthesis prompt may include anchor quotes as extra context (fenced as data; no schema change to summaries)
+_(6.4 + 6.9 done together 2026-07-07 (user decision — same column/schema/plumbing): migration `0001` adds nullable `comments.anchor` jsonb; `commentAnchorSchema` in `lib/validation` is a discriminated union of `text-quote` {quote≤300, prefix/suffix≤100} and `image-point` {xPct, yPct} (camelCase realized vs. the sketch's x_pct). Additive everywhere: `addCommentInputSchema` gains optional `anchor` (so MCP `add_comment` picks it up via `.shape`), `get_feedback` returns `anchor` per comment, the share action reads a JSON hidden field — malformed/forged anchors are **dropped, never a reason to reject the comment** (MCP, whose caller is a program, errors instead). Note: there is no REST comment route (comments are MCP + share-view only), so "REST + MCP" from the sketch resolves to share-action + MCP. UI: `AnchoredPreview` wraps the preview on share + owner pages — select text in markdown/text/json/csv → floating "Comment on this" → quote chip in the form; click an image → percent-based pin; numbered pin markers track the `<img>` box via ResizeObserver; chips above comments jump-to + flash the passage via the CSS Custom Highlight API (guarded; scroll works everywhere) and unlocatable quotes degrade to the plain chip. Owner page renders anchors read-only (no compose provider). HTML/SVG region pins stay cut (sandbox boundary). Synthesis instruction now passes anchored quotes as fenced `(about the passage: …)` context — prompt version bumped to `feedback-synthesis@2`. 14 new tests (core round-trip + null back-compat, MCP both variants + old shape + malformed-anchor rejection, share action valid/malformed/schema-invalid, schema bounds, pin numbering, synthesis context + sentinel stripping). `pnpm check` + 215 tests + `pnpm build` green. ⚠️ Deploy note: run `pnpm db:migrate` against prod before/with this deploy (additive ADD COLUMN).)_
+- [x] Migration: nullable `comments.anchor` jsonb + shared Zod anchor schema in `lib/validation`
+- [x] `core/feedback` accepts/returns anchors + unit tests (incl. null-anchor back-compat)
+- [x] Share-action + MCP additive optional field + integration tests (old-shape request still succeeds); no REST comment route exists to extend
+- [x] Selection UI on text-kind viewers (share view compose; owner page renders + jumps) + quote rendering/highlight jump
+- [x] Synthesis prompt includes anchor quotes as extra context (fenced as data; no schema change to summaries; version → `feedback-synthesis@2`)
 
 #### 6.5 Admin console (impact Med-High / effort M)
 Grow `/admin` beyond `/admin/ai` into a small real console (session-gated with the existing token; all logic in `core/`, thin pages). Deliberately **skipped** for a single-team tool: audit logs, roles, per-user analytics, bulk import/export.
@@ -314,10 +315,11 @@ Owner-triggered batch action (from the 6.5 tag tile): Haiku proposes lowercase/d
 - [ ] **OG / social unfurl** (keep — S): `opengraph-image` + meta tags so a pasted share link unfurls with title/description/preview in chat tools — serves the core review loop directly. Must not leak beyond what the share token already grants; unfurl images for share URLs go through the token-verified path
 - [ ] Dark-mode toggle — **cut** unless slack remains (tokens already exist)
 
-#### 6.9 Image point-pin comments (impact Med / effort M — Tier 1, **second cut**)
-Click a point on an `image`-kind preview → anchor `{type:"image-point", x_pct, y_pct}` (same `anchor` column/schema, additive variant), rendered as numbered markers. Images only; only after 6.4 is fully green.
-- [ ] Anchor schema variant + core/REST/MCP round-trip tests
-- [ ] Pin UI on image viewer (owner + share view)
+#### 6.9 Image point-pin comments (impact Med / effort M — Tier 1)
+Click a point on an `image`-kind preview → anchor `{type:"image-point", xPct, yPct}` (same `anchor` column/schema, additive variant), rendered as numbered markers. Images only.
+_(Done 2026-07-07, built together with 6.4 — see the 6.4 note above for the full record.)_
+- [x] Anchor schema variant + core/MCP/share-action round-trip tests
+- [x] Pin UI on image viewer (owner + share view; numbered markers, pending-pin dot, pin→comment and chip→pin jumps)
 
 **Accept (Phase 6):**
 - Fresh non-technical visitor perceives a designed product (owner manual prod pass); shadcn is the actual component layer.
@@ -402,6 +404,8 @@ AI_DAILY_CALL_BUDGET=500    # per-feature guardrail
 | 2026-07-07 | **Phase 6 (product polish) inserted; documentation phase renumbered to 7** | User decision after Phase 5: core works but doesn't feel like a polished product. Scope, priorities, and cut order in §8 Phase 6. Constraints: no breaking MCP/REST/share contract changes (additive-optional only), AI-invisible principle held, all non-UI work automated-test-provable. |
 | 2026-07-07 | Live gallery previews via client-side render of `/raw/[id]` — **not** a thumbnail pipeline | Honors the cut-list "thumbnail generation pipeline" cut's intent (no worker, no sharp, no stored thumbnail bytes, no schema change) while replacing kind icons with real previews: the card scales down content the app already serves through the sandboxed `/raw` path (`pointer-events-none`, lazy). The cut-list future path (worker + sharp on upload) remains the answer if gallery-scale perf ever demands static thumbnails. |
 | 2026-07-07 | NL search = LLM query→filter translation over existing FTS — **not** the cut embedding search | A Haiku pre-parser maps a natural-language query onto the filter structure `core/artifacts` search already supports (FTS terms, kind, tags, date range). No embeddings, no pgvector, no new retrieval infra, so the "semantic search" cut stands. Trivial/keyword queries bypass the LLM; any failure/budget-trip falls back to raw FTS with the original string. New `nl-search` eval set gates it like Features A/B. |
+| 2026-07-07 | Gallery search: blank form params ("" ) = absent at the `listQuerySchema` boundary | The search box is a native GET form, so every submit sends all fields — `/?q=word&kind=` is the true shape of a UI search. The schema rejected `""` (not `undefined`) → ZodError → error boundary; **every form search crashed from Phase 1 until found 2026-07-07** (masked in earlier verification because curls/tests omitted the blank fields). All `listQuerySchema` fields now preprocess blank→undefined; invalid non-blank values still reject. Regression test pins the exact form shapes. |
+| 2026-07-07 | SVG previews render via `<img>`, not an empty-sandbox iframe | An image decoding context is script-inert by spec — strictly stronger than `sandbox=""` (no frame exists at all), and it eliminates the "Blocked script execution" console noise caused by devtools browser extensions trying to inject hooks into the sandboxed SVG frame. `/raw` still serves SVG with the CSP `sandbox` directive, so direct navigation stays sandboxed. CLAUDE.md invariant + §2 table updated; the "SVG treated as active content" init decision is superseded for *embedding* (serving is unchanged). |
 | 2026-07-07 | Anchored feedback shipped as text-quote Tier 0; HTML/SVG region-pins explicitly cut | Simplest version that's actually useful: `{type:"text-quote", quote, prefix?, suffix?}` in a nullable `comments.anchor` jsonb — additive-optional on REST/MCP, null = unanchored, no client breaks, re-location degrades gracefully to a plain quote. Region-pins inside HTML/SVG are cut because the `/raw` iframe is a security boundary: a postMessage coordinate channel from untrusted content is exactly the attack surface the sandbox exists to prevent. Image point-pins (`image-point` variant) are Tier 1, second-cut. |
 
 ## 12. Phase 0 → Phase 1 handoff

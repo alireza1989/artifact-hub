@@ -135,6 +135,13 @@
   }
 }
 
+/* Anchored-comment flash (Phase 6.4): CSS Custom Highlight API target used when
+   jumping from a quote chip to its passage in the preview. */
+::highlight(anchor-flash) {
+  background-color: oklch(0.6 0.16 264 / 30%);
+  color: inherit;
+}
+
 /* Rendered-markdown preview (PLAN §2). Scoped so it never leaks into app chrome. */
 .markdown {
   @apply text-sm leading-relaxed;

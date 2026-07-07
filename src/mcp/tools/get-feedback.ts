@@ -1,7 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { getFeedback } from "@/core/feedback";
-import { artifactIdSchema } from "@/lib/validation";
+import { artifactIdSchema, commentAnchorSchema } from "@/lib/validation";
 import type { ToolContext } from "../auth";
 import { toToolError } from "../tool-error";
 
@@ -24,6 +24,9 @@ const outputSchema = {
       authorName: z.string(),
       body: z.string(),
       createdAt: z.string(),
+      anchor: commentAnchorSchema
+        .nullable()
+        .describe("What the comment points at (text quote or image point); null = whole artifact."),
     }),
   ),
   total: z.number().int(),
@@ -70,6 +73,7 @@ export function registerGetFeedback(server: McpServer, _ctx: ToolContext): void 
               authorName: c.authorName,
               body: c.body,
               createdAt: c.createdAt.toISOString(),
+              anchor: c.anchor ?? null,
             })),
             total: feedback.total,
             summary: feedback.summary,

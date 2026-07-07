@@ -71,15 +71,25 @@ export async function synthesizeComments(
   return result.usedAi ? result.value : null;
 }
 
-// Generate from the most-recent stored comments (PLAN §5.3 batch cap).
+// Generate from the most-recent stored comments (PLAN §5.3 batch cap). Anchored
+// comments (Phase 6.4) pass their quoted passage as grounding context.
 async function generate(artifactId: string): Promise<FeedbackSummary | null> {
   const rows = await getDb()
-    .select({ id: comments.id, authorName: comments.authorName, body: comments.body })
+    .select({
+      id: comments.id,
+      authorName: comments.authorName,
+      body: comments.body,
+      anchor: comments.anchor,
+    })
     .from(comments)
     .where(eq(comments.artifactId, artifactId))
     .orderBy(desc(comments.createdAt))
     .limit(SYNTHESIS_COMMENT_CAP);
-  return synthesizeComments(rows, artifactId);
+  const batch = rows.map(({ anchor, ...c }) => ({
+    ...c,
+    anchorQuote: anchor?.type === "text-quote" ? anchor.quote : undefined,
+  }));
+  return synthesizeComments(batch, artifactId);
 }
 
 // Feature B orchestration (PLAN §5.2). Returns the current synthesis for an

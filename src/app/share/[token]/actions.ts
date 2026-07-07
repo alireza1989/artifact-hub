@@ -6,7 +6,12 @@ import { addComment } from "@/core/feedback";
 import { verifyShareToken } from "@/core/sharing";
 import { logger } from "@/lib/logger";
 import { rateLimit } from "@/lib/rate-limit";
-import { addCommentInputSchema, shareTokenSchema } from "@/lib/validation";
+import {
+  addCommentInputSchema,
+  type CommentAnchor,
+  commentAnchorSchema,
+  shareTokenSchema,
+} from "@/lib/validation";
 
 export type ShareCommentState = { error?: string; ok?: boolean };
 
@@ -36,6 +41,11 @@ export async function submitShareComment(formData: FormData): Promise<ShareComme
   });
   if (!fields.success) return { error: "Add your name and a comment (up to 5000 characters)." };
 
+  // Optional anchored feedback (Phase 6.4/6.9), sent as a JSON hidden field. The
+  // comment is the valuable part — a malformed/forged anchor is dropped, never a
+  // reason to reject the comment.
+  const anchor = parseAnchorField(formData.get("anchor"));
+
   const ip = (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
   if (!rateLimit(`share-comment:${ip}:${result.linkId}`, COMMENTS_PER_WINDOW, WINDOW_MS)) {
     return { error: "You’re commenting too fast. Wait a moment and try again." };
@@ -46,6 +56,7 @@ export async function submitShareComment(formData: FormData): Promise<ShareComme
       artifactId: fields.data.id,
       authorName: fields.data.authorName,
       body: fields.data.body,
+      anchor,
     });
   } catch (error) {
     logger.error(
@@ -57,4 +68,14 @@ export async function submitShareComment(formData: FormData): Promise<ShareComme
 
   revalidatePath(`/share/${parsedToken.data}`);
   return { ok: true };
+}
+
+function parseAnchorField(raw: FormDataEntryValue | null): CommentAnchor | undefined {
+  if (typeof raw !== "string" || raw.length === 0) return undefined;
+  try {
+    const parsed = commentAnchorSchema.safeParse(JSON.parse(raw));
+    return parsed.success ? parsed.data : undefined;
+  } catch {
+    return undefined;
+  }
 }

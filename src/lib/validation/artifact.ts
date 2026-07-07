@@ -65,18 +65,33 @@ export const LIST_LIMIT_MAX = 50;
 // `since` (Phase 6.3, additive) filters to artifacts created at/after a moment —
 // it backs the NL-search "from last week" style queries but is a plain filter any
 // caller may pass.
+//
+// Every field tolerates "" as "not provided": a native GET form (the gallery
+// search box) always submits its fields, so `/?q=word&kind=` is what every
+// form-driven search actually looks like. Rejecting "" crashed every UI search
+// from Phase 1 until 2026-07-07 — a blank string at this boundary is absence,
+// not invalid input.
+const blank = (value: unknown) =>
+  typeof value === "string" && value.trim() === "" ? undefined : value;
+
 export const listQuerySchema = z.object({
-  q: z.string().trim().min(1).max(200).optional(),
-  kind: artifactKindSchema.optional(),
-  tags: z
-    .union([z.string(), z.array(z.string())])
-    .transform((value) => (Array.isArray(value) ? value : value.split(",")))
-    .pipe(tagsSchema)
-    .optional(),
-  since: z.coerce.date().optional(),
-  sort: z.enum(["recent", "oldest"]).default("recent"),
-  limit: z.coerce.number().int().min(1).max(LIST_LIMIT_MAX).default(LIST_LIMIT_DEFAULT),
-  offset: z.coerce.number().int().min(0).default(0),
+  q: z.preprocess(blank, z.string().trim().min(1).max(200).optional()),
+  kind: z.preprocess(blank, artifactKindSchema.optional()),
+  tags: z.preprocess(
+    blank,
+    z
+      .union([z.string(), z.array(z.string())])
+      .transform((value) => (Array.isArray(value) ? value : value.split(",")))
+      .pipe(tagsSchema)
+      .optional(),
+  ),
+  since: z.preprocess(blank, z.coerce.date().optional()),
+  sort: z.preprocess(blank, z.enum(["recent", "oldest"]).default("recent")),
+  limit: z.preprocess(
+    blank,
+    z.coerce.number().int().min(1).max(LIST_LIMIT_MAX).default(LIST_LIMIT_DEFAULT),
+  ),
+  offset: z.preprocess(blank, z.coerce.number().int().min(0).default(0)),
 });
 export type ListQuery = z.infer<typeof listQuerySchema>;
 

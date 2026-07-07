@@ -1,12 +1,17 @@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
 import { formatDate } from "@/lib/format";
+import type { CommentAnchor } from "@/lib/validation";
+import { numberImagePins, pinNumberFor } from "./anchor-utils";
+import { CommentAnchorChip } from "./anchors";
 
 type DisplayComment = {
   id: string;
   authorName: string;
   body: string;
   createdAt: Date | string;
+  // Phase 6.4/6.9: optional anchor; null/absent = plain comment (all old rows).
+  anchor?: CommentAnchor | null;
 };
 
 function initials(name: string): string {
@@ -24,6 +29,7 @@ export function CommentList({ comments }: { comments: DisplayComment[] }) {
       </p>
     );
   }
+  const pins = numberImagePins(comments);
   return (
     <ul className="space-y-3">
       {comments.map((comment) => (
@@ -41,6 +47,15 @@ export function CommentList({ comments }: { comments: DisplayComment[] }) {
                   {formatDate(comment.createdAt)}
                 </span>
               </div>
+              {comment.anchor ? (
+                <div className="mt-1">
+                  <CommentAnchorChip
+                    anchor={comment.anchor}
+                    commentId={comment.id}
+                    pinNumber={pinNumberFor(pins, comment.id)}
+                  />
+                </div>
+              ) : null}
               <p className="mt-1 text-sm whitespace-pre-wrap">{comment.body}</p>
             </div>
           </Card>

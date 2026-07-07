@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { ArtifactPreview } from "@/components/artifacts/preview";
 import { CodeView } from "@/components/artifacts/preview/code-view";
 import { TagChip } from "@/components/artifacts/tag-chip";
+import { numberImagePins } from "@/components/feedback/anchor-utils";
+import { AnchoredPreview } from "@/components/feedback/anchors";
 import { CommentList } from "@/components/feedback/comment-list";
 import { SynthesisCard } from "@/components/feedback/synthesis-card";
 import { Badge } from "@/components/ui/badge";
@@ -75,7 +77,12 @@ export default async function ArtifactPage({ params }: { params: Promise<{ id: s
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
         <div className="min-w-0">
-          <PreviewArea artifact={artifact} />
+          {/* No compose provider here: the owner page renders anchors read-only
+              (pins + quote jumps); anchored comments are created on the share
+              view or via MCP (Phase 6.4/6.9). */}
+          <AnchoredPreview kind={artifact.kind} pins={numberImagePins(feedback.comments)}>
+            <PreviewArea artifact={artifact} />
+          </AnchoredPreview>
         </div>
 
         <aside className="space-y-4 self-start lg:sticky lg:top-20">

@@ -85,7 +85,7 @@ tests/
 
 ## Security invariants (never violate)
 
-- User-uploaded HTML/SVG renders **only** inside `sandbox`-attribute iframes pointed at `/raw/[id]`, which serves with `Content-Security-Policy` blocking scripts' network access and `X-Content-Type-Options: nosniff`. Never `dangerouslySetInnerHTML` artifact content.
+- User-uploaded HTML renders **only** inside `sandbox`-attribute iframes pointed at `/raw/[id]`; user-uploaded SVG renders **only** via `<img>` pointed at `/raw/[id]` (an image decoding context is script-inert by spec — stricter than an empty-sandbox iframe; decision 2026-07-07). `/raw` serves both with a `Content-Security-Policy` whose `sandbox` directive covers direct navigation and blocks scripts' network access, plus `X-Content-Type-Options: nosniff`. Never `dangerouslySetInnerHTML` artifact content.
 - Share tokens: HMAC-signed, embed expiry, backed by a DB row for revocation. Constant-time comparison. Never log full tokens.
 - MCP/API write operations require the bearer token; reads on shared artifacts are token-gated by share link. Auth check happens in middleware/handler before any core call.
 - Upload limits enforced (size + MIME allowlist) server-side, not just in UI.

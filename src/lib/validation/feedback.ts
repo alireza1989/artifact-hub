@@ -6,10 +6,48 @@ import { artifactIdSchema } from "./artifact";
 export const COMMENT_BODY_MAX = 5000;
 export const AUTHOR_NAME_MAX = 100;
 
+// Anchored feedback (PLAN Phase 6.4/6.9): a comment may point at something
+// specific. Additive and optional everywhere — `null`/absent = a plain comment
+// (all pre-Phase-6 rows). Two variants, one jsonb column:
+//   text-quote  — a selected passage in a text-kind artifact; prefix/suffix give
+//                 re-location context, and a quote that no longer matches simply
+//                 renders as a plain quote (graceful degradation).
+//   image-point — a pinned spot on an image, in percent so it survives scaling.
+// Deliberately NOT supported: region pins inside HTML/SVG — the /raw iframe is a
+// security boundary (see PLAN Decision Log 2026-07-07).
+export const ANCHOR_QUOTE_MAX = 300;
+export const ANCHOR_AFFIX_MAX = 100;
+
+export const textQuoteAnchorSchema = z.object({
+  type: z.literal("text-quote"),
+  quote: z.string().trim().min(1).max(ANCHOR_QUOTE_MAX),
+  prefix: z.string().max(ANCHOR_AFFIX_MAX).optional(),
+  suffix: z.string().max(ANCHOR_AFFIX_MAX).optional(),
+});
+
+export const imagePointAnchorSchema = z.object({
+  type: z.literal("image-point"),
+  xPct: z.number().min(0).max(100),
+  yPct: z.number().min(0).max(100),
+});
+
+export const commentAnchorSchema = z.discriminatedUnion("type", [
+  textQuoteAnchorSchema,
+  imagePointAnchorSchema,
+]);
+export type CommentAnchor = z.infer<typeof commentAnchorSchema>;
+
 export const addCommentInputSchema = z.object({
   id: artifactIdSchema,
   authorName: z.string().trim().min(1).max(AUTHOR_NAME_MAX),
   body: z.string().trim().min(1).max(COMMENT_BODY_MAX),
+  anchor: commentAnchorSchema
+    .optional()
+    .describe(
+      "Optional: anchor the comment to something specific — a quoted text passage " +
+        '({type:"text-quote", quote, prefix?, suffix?}) or a point on an image ' +
+        '({type:"image-point", xPct, yPct} in percent). Omit for a plain comment.',
+    ),
 });
 export type AddCommentInput = z.infer<typeof addCommentInputSchema>;
 

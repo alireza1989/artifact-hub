@@ -1,5 +1,7 @@
 import { Clock } from "lucide-react";
 import { ArtifactPreview } from "@/components/artifacts/preview";
+import { numberImagePins } from "@/components/feedback/anchor-utils";
+import { AnchorComposeProvider, AnchoredPreview } from "@/components/feedback/anchors";
 import { SynthesisCard } from "@/components/feedback/synthesis-card";
 import { Badge } from "@/components/ui/badge";
 import { getFeedback } from "@/core/feedback";
@@ -59,13 +61,20 @@ export default async function SharePage({ params }: { params: Promise<{ token: s
         <span>This link expires {formatExpiresIn(expiresAt)}.</span>
       </div>
 
-      <ArtifactPreview artifact={artifact} />
+      {/* Anchored feedback (Phase 6.4/6.9): the provider shares the pending
+          anchor between the preview (where it's captured) and the comment form
+          (where it's submitted). */}
+      <AnchorComposeProvider>
+        <AnchoredPreview kind={artifact.kind} pins={numberImagePins(feedback.comments)}>
+          <ArtifactPreview artifact={artifact} />
+        </AnchoredPreview>
 
-      {feedback.summary ? (
-        <SynthesisCard summary={feedback.summary} comments={feedback.comments} />
-      ) : null}
+        {feedback.summary ? (
+          <SynthesisCard summary={feedback.summary} comments={feedback.comments} />
+        ) : null}
 
-      <ShareComments token={token} comments={feedback.comments} />
+        <ShareComments token={token} comments={feedback.comments} />
+      </AnchorComposeProvider>
     </div>
   );
 }

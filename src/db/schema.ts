@@ -54,6 +54,14 @@ type FeedbackSummaryPayload = {
   sentiment: "positive" | "mixed" | "negative";
 };
 
+// Anchored feedback payload (PLAN Phase 6.4/6.9). Structural mirror of
+// commentAnchorSchema in lib/validation (like FeedbackSummaryPayload above, kept
+// local so drizzle-kit generation doesn't depend on zod modules). null = plain
+// comment; every pre-Phase-6 row is null.
+type CommentAnchorPayload =
+  | { type: "text-quote"; quote: string; prefix?: string; suffix?: string }
+  | { type: "image-point"; xPct: number; yPct: number };
+
 export const artifacts = pgTable(
   "artifacts",
   {
@@ -101,6 +109,7 @@ export const comments = pgTable(
       .references(() => artifacts.id, { onDelete: "cascade" }),
     authorName: text("author_name").notNull(),
     body: text("body").notNull(),
+    anchor: jsonb("anchor").$type<CommentAnchorPayload>(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [index("comments_artifact_created_idx").on(table.artifactId, table.createdAt)],

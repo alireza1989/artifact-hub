@@ -40,14 +40,16 @@ export async function ArtifactPreview({ artifact }: { artifact: Artifact }) {
         />
       );
     case "svg":
-      // SVG is active content but needs no scripts: empty sandbox blocks them.
+      // SVG renders via <img>: an image decoding context is script-inert by spec
+      // (stricter than an empty-sandbox iframe, and no frame exists for browser
+      // extensions to inject into — the iframe version made devtools extensions
+      // log "Blocked script execution" noise). Direct navigation to /raw stays
+      // covered by its CSP sandbox header. See PLAN Decision Log 2026-07-07.
       return (
-        <iframe
-          src={raw}
-          title={artifact.title}
-          sandbox=""
-          className="border-border h-[70vh] w-full rounded-lg border bg-white"
-        />
+        <div className="border-border flex justify-center rounded-lg border bg-white p-4">
+          {/* biome-ignore lint/performance/noImgElement: artifact bytes are served via /raw, not Next-optimizable. */}
+          <img src={raw} alt={artifact.title} className="max-h-[70vh] w-auto" />
+        </div>
       );
     case "pdf":
       return (

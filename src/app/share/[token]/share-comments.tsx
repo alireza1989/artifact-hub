@@ -2,6 +2,12 @@
 
 import { useOptimistic, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
+import { numberImagePins, pinNumberFor } from "@/components/feedback/anchor-utils";
+import {
+  CommentAnchorChip,
+  PendingAnchorField,
+  useAnchorCompose,
+} from "@/components/feedback/anchors";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -9,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { Comment } from "@/db/schema";
 import { formatDate } from "@/lib/format";
+import type { CommentAnchor } from "@/lib/validation";
 import { AUTHOR_NAME_MAX, COMMENT_BODY_MAX } from "@/lib/validation";
 import { submitShareComment } from "./actions";
 
@@ -17,6 +24,7 @@ type DisplayComment = {
   authorName: string;
   body: string;
   createdAt: Date | string;
+  anchor?: CommentAnchor | null;
   pending?: boolean;
 };
 
@@ -28,6 +36,8 @@ function initials(name: string): string {
 // Read-only-except-commenting feedback panel for the share view. Comments append
 // optimistically so an external reviewer sees their note land instantly; on a
 // server error the optimistic entry reverts and the error shows (PLAN §7).
+// Phase 6.4/6.9: comments may carry an anchor (text quote / image pin) picked up
+// from the AnchorCompose context that AnchoredPreview fills.
 export function ShareComments({ token, comments }: { token: string; comments: Comment[] }) {
   const [optimistic, addOptimistic] = useOptimistic<DisplayComment[], DisplayComment>(
     comments,
@@ -36,6 +46,9 @@ export function ShareComments({ token, comments }: { token: string; comments: Co
   const [error, setError] = useState<string>();
   const [isPending, startTransition] = useTransition();
   const formRef = useRef<HTMLFormElement>(null);
+  const compose = useAnchorCompose();
+
+  const pins = numberImagePins(optimistic);
 
   function onSubmit(formData: FormData) {
     const authorName = String(formData.get("authorName") ?? "").trim();
@@ -45,15 +58,18 @@ export function ShareComments({ token, comments }: { token: string; comments: Co
       return;
     }
     setError(undefined);
+    const anchor = compose?.pending ?? null;
     startTransition(async () => {
       addOptimistic({
         id: `optimistic-${Date.now()}`,
         authorName,
         body,
+        anchor,
         createdAt: new Date(),
         pending: true,
       });
       formRef.current?.reset();
+      compose?.setPending(null);
       const res = await submitShareComment(formData);
       if (res.error) {
         setError(res.error);
@@ -81,6 +97,7 @@ export function ShareComments({ token, comments }: { token: string; comments: Co
           aria-hidden="true"
           className="hidden"
         />
+        <PendingAnchorField />
         <Input
           name="authorName"
           required
@@ -130,6 +147,15 @@ export function ShareComments({ token, comments }: { token: string; comments: Co
                       {comment.pending ? "Posting…" : formatDate(comment.createdAt)}
                     </span>
                   </div>
+                  {comment.anchor ? (
+                    <div className="mt-1">
+                      <CommentAnchorChip
+                        anchor={comment.anchor}
+                        commentId={comment.id}
+                        pinNumber={pinNumberFor(pins, comment.id)}
+                      />
+                    </div>
+                  ) : null}
                   <p className="mt-1 text-sm whitespace-pre-wrap">{comment.body}</p>
                 </div>
               </Card>

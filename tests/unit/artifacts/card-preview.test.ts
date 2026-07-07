@@ -63,11 +63,13 @@ describe("CardPreview sandboxing and inertness", () => {
     expect(iframe?.props.src).toBe("/raw/a_cardtest01");
   });
 
-  it("renders SVG in an iframe with an EMPTY sandbox (no scripts, ever)", async () => {
-    const iframe = findByTag(await render("svg"), "iframe");
-    expect(iframe).toBeDefined();
-    expect(iframe?.props.sandbox).toBe("");
-    expect(String(iframe?.props.className)).toContain("pointer-events-none");
+  it("renders SVG via <img> — script-inert by spec, never a frame", async () => {
+    const tree = await render("svg");
+    expect(findByTag(tree, "iframe")).toBeUndefined();
+    const img = findByTag(tree, "img");
+    expect(img).toBeDefined();
+    expect(img?.props.src).toBe("/raw/a_cardtest01");
+    expect(img?.props.loading).toBe("lazy");
   });
 
   it("renders PDF via the browser viewer iframe, inert and lazy", async () => {
