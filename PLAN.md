@@ -220,10 +220,11 @@ Stateless Streamable HTTP endpoint; all §4.1 tools over `core/`; bearer auth; i
 ### Phase 3 — Sharing & feedback (UI/flow)
 Re-scoped 2026-07-06: `core/sharing` (sign/verify/revoke) and `core/feedback` (comments) were built + unit-tested in Phase 2 to back the MCP tools, so Phase 3 is now UI-and-flow only — the `/share/[token]` viewer over the existing `verifyShareToken`, expired/revoked pages, the share-view comment form over `addComment`, the owner-side link-management UI (list/countdown/one-click revoke), and surfacing the access counters.
 **Accept:** link lifecycle (create → access → expire/revoke) works through the UI; external commenting works on the share view.
-- [ ] `/share/[token]` viewer + friendly expired/revoked pages (flips the smoke script's share-fetch step to a hard assertion)
-- [ ] External commenting on the share view (name + body over `core/feedback`)
-- [ ] Owner link-management UI (active links, expiry countdown, access count, one-click revoke)
-- [ ] Publish/gallery wiring for share management
+_(Phase 3 verified 2026-07-06 in-browser on a Vercel preview deploy: valid-link view + live expiry, friendly expired/revoked/invalid pages, external commenting (optimistic + honeypot + rate-limit), and owner link-management (create/countdown/access-count/one-click revoke). `pnpm check` + 111 tests + `pnpm build` green. The smoke share-fetch is now a hard assertion — it will pass against prod once this branch deploys there.)_
+- [x] `/share/[token]` viewer + friendly expired/revoked pages (flips the smoke script's share-fetch step to a hard assertion)
+- [x] External commenting on the share view (name + body over `core/feedback`)
+- [x] Owner link-management UI (active links, expiry countdown, access count, one-click revoke)
+- [x] Publish/gallery wiring for share management
 
 ### Phase 4 — AI features + observability
 `lib/ai` wrapper (telemetry, retries, fallbacks, cost map) → Feature A → Feature B (advisory-lock single-flight) → guardrails → `/admin/ai` → eval harness + golden sets + CI eval job.
