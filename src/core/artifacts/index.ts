@@ -24,5 +24,6 @@ export {
   type PublishArtifactResult,
   publishArtifact,
 } from "./publish";
+export { type RegenerateMetadataResult, regenerateMetadata } from "./regenerate";
 export { type SniffInput, type SniffResult, sniffArtifact } from "./sniff";
 export { updateArtifactMetadata } from "./update";

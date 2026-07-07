@@ -2,10 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { invalidateSynthesis } from "@/core/ai";
 import {
   ArtifactNotFoundError,
   deleteArtifact,
   publishArtifact,
+  regenerateMetadata,
   updateArtifactMetadata,
 } from "@/core/artifacts";
 import { DomainError } from "@/core/errors";
@@ -107,6 +109,46 @@ export async function updateMetadataAction(
   }
   revalidatePath(`/a/${id.data}`);
   return { ok: true };
+}
+
+// Re-run Feature A on an existing artifact (PLAN Phase 6.6). Owner-gated; the
+// fresh suggestion is applied via the existing "suggested"-badge mechanism, so
+// the owner reviews it exactly like publish-time suggestions.
+export type RegenerateState = { error?: string; ok?: boolean };
+
+export async function regenerateMetadataAction(
+  _prev: RegenerateState,
+  formData: FormData,
+): Promise<RegenerateState> {
+  if (!(await hasValidSession())) return { error: "Your session expired. Unlock again." };
+  const id = artifactIdSchema.safeParse(String(formData.get("id")));
+  if (!id.success) return { error: "Invalid artifact." };
+
+  try {
+    const result = await regenerateMetadata(id.data);
+    if (!result.regenerated) {
+      // Honest failure copy: the AI declined/fell back — nothing was changed.
+      return { error: "Couldn't generate suggestions right now. Nothing was changed." };
+    }
+  } catch (error) {
+    return { error: messageFor(error, { action: "regenerate-metadata", id: id.data }) };
+  }
+  revalidatePath(`/a/${id.data}`);
+  return { ok: true };
+}
+
+// Force the feedback summary to regenerate on next read (PLAN Phase 6.6): drop
+// the stored synthesis; the page render's getFeedback lazily rebuilds it.
+export async function refreshSynthesisAction(formData: FormData): Promise<void> {
+  if (!(await hasValidSession())) redirect("/unlock");
+  const id = artifactIdSchema.parse(String(formData.get("id")));
+  try {
+    await invalidateSynthesis(id);
+  } catch (error) {
+    logger.error({ err: error, action: "refresh-synthesis", id }, "web action failed");
+    throw error;
+  }
+  revalidatePath(`/a/${id}`);
 }
 
 export async function deleteArtifactAction(formData: FormData): Promise<void> {

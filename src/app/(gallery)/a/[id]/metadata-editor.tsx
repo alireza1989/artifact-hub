@@ -9,7 +9,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { type UpdateMetaState, updateMetadataAction } from "../../actions";
+import {
+  type RegenerateState,
+  regenerateMetadataAction,
+  type UpdateMetaState,
+  updateMetadataAction,
+} from "../../actions";
 
 // Owner-only metadata editor (PLAN §5.1). Pre-filled with the current values; any
 // field still holding its AI suggestion is badged "suggested" so the owner knows
@@ -84,8 +89,38 @@ export function MetadataEditor({
             {pending ? "Saving…" : "Save details"}
           </Button>
         </form>
+
+        <RegenerateButton artifactId={artifactId} />
       </CardContent>
     </Card>
+  );
+}
+
+// Re-run Feature A (PLAN Phase 6.6): fresh suggestions replace the fields and
+// show as "suggested" again — the owner reviews/edits exactly like publish-time.
+function RegenerateButton({ artifactId }: { artifactId: string }) {
+  const [state, action, pending] = useActionState<RegenerateState, FormData>(
+    regenerateMetadataAction,
+    {},
+  );
+  const lastState = useRef(state);
+  useEffect(() => {
+    if (state === lastState.current) return;
+    lastState.current = state;
+    if (state.ok) toast.success("Fresh suggestions applied — review and save edits");
+    else if (state.error) toast.error(state.error);
+  }, [state]);
+
+  return (
+    <form action={action} className="mt-3 border-t pt-3">
+      <input type="hidden" name="id" value={artifactId} />
+      <Button type="submit" variant="ghost" size="sm" disabled={pending} className="w-full">
+        <Sparkles /> {pending ? "Generating…" : "Re-run AI suggestions"}
+      </Button>
+      <p className="text-muted-foreground mt-1 text-center text-xs">
+        Replaces title, description, and tags with fresh suggestions.
+      </p>
+    </form>
   );
 }
 

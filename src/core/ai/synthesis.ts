@@ -41,6 +41,13 @@ async function loadStored(
   return row ?? null;
 }
 
+// Drop the stored summary so the next read regenerates from scratch (PLAN Phase
+// 6.6 "re-run AI"). Deleting rather than regenerating here keeps the lazy
+// single-flight path in getOrCreateSynthesis the only generation code.
+export async function invalidateSynthesis(artifactId: string): Promise<void> {
+  await getDb().delete(feedbackSummaries).where(eq(feedbackSummaries.artifactId, artifactId));
+}
+
 // Synthesize a batch of comments via the schema-validated wrapper. DB-free (the
 // eval harness calls it directly with fixture comments); returns null when the
 // model didn't produce a usable summary (fallback/budget/error).

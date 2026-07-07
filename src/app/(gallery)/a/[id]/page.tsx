@@ -1,4 +1,4 @@
-import { Download, ExternalLink } from "lucide-react";
+import { Download, ExternalLink, RefreshCw } from "lucide-react";
 import { notFound } from "next/navigation";
 import { ArtifactPreview } from "@/components/artifacts/preview";
 import { CodeView } from "@/components/artifacts/preview/code-view";
@@ -18,6 +18,7 @@ import { listShareLinks } from "@/core/sharing";
 import { hasValidSession } from "@/lib/auth/session";
 import { formatBytes, formatDate, kindLabel } from "@/lib/format";
 import { artifactIdSchema } from "@/lib/validation";
+import { refreshSynthesisAction } from "../../actions";
 import { DeleteArtifactButton } from "./delete-button";
 import { MetadataEditor } from "./metadata-editor";
 import { ShareManager } from "./share-manager";
@@ -134,9 +135,21 @@ export default async function ArtifactPage({ params }: { params: Promise<{ id: s
       </div>
 
       <section className="max-w-3xl space-y-4">
-        <h2 className="text-lg font-semibold tracking-tight">
-          Feedback{feedback.total > 0 ? ` (${feedback.total})` : ""}
-        </h2>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold tracking-tight">
+            Feedback{feedback.total > 0 ? ` (${feedback.total})` : ""}
+          </h2>
+          {canManage && feedback.summary ? (
+            // Re-run Feature B (PLAN Phase 6.6): drops the stored summary; this
+            // page's next render regenerates it from the current comments.
+            <form action={refreshSynthesisAction}>
+              <input type="hidden" name="id" value={artifact.id} />
+              <Button type="submit" variant="ghost" size="sm">
+                <RefreshCw /> Refresh summary
+              </Button>
+            </form>
+          ) : null}
+        </div>
         {feedback.summary ? (
           <SynthesisCard summary={feedback.summary} comments={feedback.comments} />
         ) : null}

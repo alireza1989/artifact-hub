@@ -19,4 +19,4 @@ export {
   getAiWindowStats,
   getRecentAiFailures,
 } from "./observability";
-export { getOrCreateSynthesis, synthesizeComments } from "./synthesis";
+export { getOrCreateSynthesis, invalidateSynthesis, synthesizeComments } from "./synthesis";
