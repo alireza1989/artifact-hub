@@ -12,3 +12,10 @@ export {
   type FeedbackSummary,
   getFeedback,
 } from "./get-feedback";
+export {
+  CommentNotFoundError,
+  deleteComment,
+  listRecentComments,
+  type ModerationComment,
+  type ModerationCommentPage,
+} from "./moderation";

@@ -29,7 +29,7 @@ export default async function AdminAiPage() {
   return (
     <div className="space-y-8">
       <div className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">AI observability</h1>
+        <h2 className="text-lg font-semibold tracking-tight">AI observability</h2>
         <p className="text-muted-foreground text-sm">
           LLM calls, cost, latency, and outcomes from live telemetry.
         </p>

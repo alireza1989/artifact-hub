@@ -294,11 +294,12 @@ _(6.4 + 6.9 done together 2026-07-07 (user decision — same column/schema/plumb
 
 #### 6.5 Admin console (impact Med-High / effort M)
 Grow `/admin` beyond `/admin/ai` into a small real console (session-gated with the existing token; all logic in `core/`, thin pages). Deliberately **skipped** for a single-team tool: audit logs, roles, per-user analytics, bulk import/export.
-- [ ] `/admin` shell + nav (ai | artifacts | share links | comments)
-- [ ] Artifacts table: search, edit metadata (reuses `updateArtifactMetadata`), delete — integration tests
-- [ ] Platform-wide share-link table: new paginated `core/sharing` list-all query, expiry/access-count columns, one-click revoke — unit + integration tests (today revocation is per-artifact only)
-- [ ] Comment moderation: recent-comments list + delete — new `core/feedback` admin list/delete + tests
-- [ ] Tag management tile (rename/merge/delete across catalog; pairs with 6.7) — **cut candidate**
+_(6.5 done 2026-07-07: `/admin` shell (h1 + client tab nav; per-page session gates — the layout is never the only auth check) with an owner-only Admin header link. Artifacts tab: searchable paginated table over the plain deterministic `listArtifacts` (not NL — admin is a tool), Open → the artifact page whose metadata editor stays the single edit surface (reuses `updateArtifactMetadata`; less code), confirm-dialog delete. Share-links tab: new `listAllShareLinks` join query in `core/sharing` (paginated, artifact title, status/expiry/views/last-viewed; token never recoverable), one-click revoke — previously revocation was per-artifact only. Comments tab: new `core/feedback/moderation.ts` (`listRecentComments` platform feed + `deleteComment` with `CommentNotFoundError`; deletion auto-stales the synthesis via comment-count). Shared `ConfirmActionButton` (Dialog + toast) and `AdminPagination`. All admin actions are idempotent on already-gone targets and gate the session before any core call. 8 new integration tests: list-all ordering/join/pagination, moderation feed, delete + double-delete domain error, each action's happy path, and a single auth-denial test proving all three actions redirect to /unlock with zero writes. Unauthenticated smoke: /admin/* leaks no content. `pnpm check` + 228 tests + `pnpm build` green.)_
+- [x] `/admin` shell + nav (ai | artifacts | share links | comments)
+- [x] Artifacts table: search, edit metadata (via the artifact page's editor, reusing `updateArtifactMetadata`), delete — integration tests
+- [x] Platform-wide share-link table: new paginated `core/sharing` list-all query, expiry/access-count columns, one-click revoke — integration tests (revocation was per-artifact only before)
+- [x] Comment moderation: recent-comments list + delete — new `core/feedback` moderation module + tests
+- [ ] Tag management tile (rename/merge/delete across catalog; pairs with 6.7) — **cut candidate, skipped with 6.7 unless requested**
 
 #### 6.6 Workflow friction removers (impact Med-High / effort S-M — never cut the first two)
 - [ ] **Copy-paste MCP config panel**: UI panel with the exact remote-connector URL and the `claude_desktop_config.json` / `mcp-remote` snippet per §4.2, copy buttons, clear token placeholder handling (never render the real token into the snippet unless the unlocked owner session explicitly reveals it)

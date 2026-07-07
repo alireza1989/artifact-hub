@@ -1,10 +1,14 @@
-import { Plus } from "lucide-react";
+import { Plus, Settings2 } from "lucide-react";
 import Link from "next/link";
 import { Wordmark } from "@/components/brand/wordmark";
 import { Button } from "@/components/ui/button";
+import { hasValidSession } from "@/lib/auth/session";
 
 // Shared chrome for browse / detail / publish (all in the gallery route group).
-export default function GalleryLayout({ children }: { children: React.ReactNode }) {
+// The Admin link renders only for an unlocked owner session — visibility only;
+// every /admin page still gates itself server-side (PLAN Phase 6.5).
+export default async function GalleryLayout({ children }: { children: React.ReactNode }) {
+  const isOwner = await hasValidSession();
   return (
     <div className="flex min-h-dvh flex-col">
       <a
@@ -24,11 +28,20 @@ export default function GalleryLayout({ children }: { children: React.ReactNode 
           >
             <Wordmark />
           </Link>
-          <Button asChild size="sm">
-            <Link href="/publish">
-              <Plus /> Publish
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            {isOwner ? (
+              <Button asChild variant="ghost" size="sm">
+                <Link href="/admin">
+                  <Settings2 /> Admin
+                </Link>
+              </Button>
+            ) : null}
+            <Button asChild size="sm">
+              <Link href="/publish">
+                <Plus /> Publish
+              </Link>
+            </Button>
+          </div>
         </nav>
       </header>
       <main id="main" className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">
