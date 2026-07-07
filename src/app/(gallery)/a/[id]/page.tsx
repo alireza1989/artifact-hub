@@ -3,10 +3,12 @@ import { notFound } from "next/navigation";
 import { ArtifactPreview } from "@/components/artifacts/preview";
 import { TagChip } from "@/components/artifacts/tag-chip";
 import { ArtifactNotFoundError, getArtifact } from "@/core/artifacts";
+import { listShareLinks } from "@/core/sharing";
 import { hasValidSession } from "@/lib/auth/session";
 import { formatBytes, formatDate, kindLabel } from "@/lib/format";
 import { artifactIdSchema } from "@/lib/validation";
 import { DeleteArtifactButton } from "./delete-button";
+import { ShareManager } from "./share-manager";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +24,7 @@ export default async function ArtifactPage({ params }: { params: Promise<{ id: s
   }
 
   const canManage = await hasValidSession();
+  const shareLinks = canManage ? await listShareLinks(artifact.id) : [];
 
   return (
     <div className="space-y-6">
@@ -68,6 +71,8 @@ export default async function ArtifactPage({ params }: { params: Promise<{ id: s
             </a>
             {canManage ? <DeleteArtifactButton id={artifact.id} /> : null}
           </div>
+
+          {canManage ? <ShareManager artifactId={artifact.id} links={shareLinks} /> : null}
         </aside>
       </div>
     </div>

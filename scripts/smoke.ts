@@ -72,12 +72,13 @@ async function main(): Promise<void> {
   );
 
   const stamp = new Date().toISOString();
+  const shareTitle = `Smoke test ${stamp}`;
   const published = await client.callTool({
     name: "publish_artifact",
     arguments: {
       content: `<!doctype html><meta charset="utf-8"><h1>Smoke ${stamp}</h1>`,
       filename: "smoke.html",
-      title: `Smoke test ${stamp}`,
+      title: shareTitle,
       tags: ["smoke-test"],
     },
   });
@@ -107,13 +108,16 @@ async function main(): Promise<void> {
 
   if (shareUrl) {
     const res = await fetch(shareUrl, { redirect: "manual" });
-    if (res.status === 200) {
-      step("fetch share URL", true, "200 OK");
-    } else {
-      // The /share/[token] viewer ships in Phase 3; until then a non-200 here is
-      // expected. SOFT step — flip to a hard assertion once the viewer exists.
-      step("fetch share URL (soft — Phase 3 viewer pending)", true, `status ${res.status}`);
-    }
+    const body = res.status === 200 ? await res.text() : "";
+    // Hard assertion (Phase 3): the viewer must actually render THIS artifact, so we
+    // require both a 200 and the artifact's unique title in the HTML. Grepping the
+    // specific title (not just the status) means a generic 200 error/placeholder
+    // page can't make this pass.
+    step(
+      "fetch share URL",
+      res.status === 200 && body.includes(shareTitle),
+      res.status === 200 ? "rendered shared artifact" : `status ${res.status}`,
+    );
   }
 
   if (linkId) {

@@ -1,8 +1,11 @@
 import { Clock } from "lucide-react";
 import { ArtifactPreview } from "@/components/artifacts/preview";
+import { listComments } from "@/core/feedback";
 import { verifyShareToken } from "@/core/sharing";
 import { formatExpiresIn, kindLabel } from "@/lib/format";
 import { shareTokenSchema } from "@/lib/validation";
+import { ShareComments } from "./share-comments";
+import { ShareState } from "./share-state";
 
 // A share token grants read access to exactly one artifact for a bounded time, so
 // the page must never be cached or statically rendered — a cached copy would serve
@@ -21,18 +24,10 @@ export default async function SharePage({ params }: { params: Promise<{ token: s
     ? await verifyShareToken(parsed.data)
     : ({ ok: false, reason: "invalid" } as const);
 
-  if (!result.ok) {
-    // Checkpoint placeholder. The friendly expired/revoked/invalid pages — and the
-    // privacy justification for distinguishing them (see Decision Log 2026-07-06) —
-    // land in the next slice, after review.
-    return (
-      <div className="border-border bg-card rounded-lg border p-10 text-center">
-        <p className="text-muted-foreground text-sm">This share link isn’t available.</p>
-      </div>
-    );
-  }
+  if (!result.ok) return <ShareState reason={result.reason} />;
 
   const { artifact, expiresAt } = result;
+  const comments = await listComments(artifact.id);
 
   return (
     <div className="space-y-6">
@@ -66,6 +61,8 @@ export default async function SharePage({ params }: { params: Promise<{ token: s
       </div>
 
       <ArtifactPreview artifact={artifact} />
+
+      <ShareComments token={token} comments={comments} />
     </div>
   );
 }

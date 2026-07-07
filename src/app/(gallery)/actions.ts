@@ -4,9 +4,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { ArtifactNotFoundError, createArtifact, deleteArtifact } from "@/core/artifacts";
 import { DomainError } from "@/core/errors";
+import { createShareLink, revokeShareLink, ShareLinkNotFoundError } from "@/core/sharing";
 import { createSession, hasValidSession } from "@/lib/auth/session";
 import { logger } from "@/lib/logger";
-import { artifactIdSchema, publishMetadataSchema } from "@/lib/validation";
+import { artifactIdSchema, publishMetadataSchema, shareDurationSchema } from "@/lib/validation";
 
 export type FormState = { error?: string };
 
@@ -81,6 +82,47 @@ export async function deleteArtifactAction(formData: FormData): Promise<void> {
   }
   revalidatePath("/");
   redirect("/");
+}
+
+// Owner-side share-link management (PLAN §3.3). Both actions gate on the session
+// before any core call, wrapping the existing sharing core.
+export type CreateLinkState = { error?: string; url?: string; expiresInHuman?: string };
+
+export async function createShareLinkAction(
+  _prev: CreateLinkState,
+  formData: FormData,
+): Promise<CreateLinkState> {
+  if (!(await hasValidSession())) return { error: "Your session expired. Unlock again." };
+
+  const id = artifactIdSchema.safeParse(String(formData.get("id")));
+  const duration = shareDurationSchema.safeParse(String(formData.get("duration")));
+  if (!id.success || !duration.success) return { error: "Choose a valid duration and try again." };
+
+  try {
+    const link = await createShareLink(id.data, duration.data);
+    revalidatePath(`/a/${id.data}`);
+    // The token is stored hash-only and unrecoverable later, so return the full URL
+    // for a one-time reveal in the UI.
+    return { url: link.url, expiresInHuman: link.expiresInHuman };
+  } catch (error) {
+    return { error: messageFor(error, { action: "create-share-link", id: id.data }) };
+  }
+}
+
+export async function revokeShareLinkAction(formData: FormData): Promise<void> {
+  if (!(await hasValidSession())) redirect("/unlock");
+  const linkId = String(formData.get("linkId") ?? "");
+  const artifactId = artifactIdSchema.parse(String(formData.get("artifactId")));
+  try {
+    await revokeShareLink(linkId);
+  } catch (error) {
+    // Unknown link → idempotent no-op. Anything else → log with context and rethrow.
+    if (!(error instanceof ShareLinkNotFoundError)) {
+      logger.error({ err: error, action: "revoke-share-link", linkId }, "web action failed");
+      throw error;
+    }
+  }
+  revalidatePath(`/a/${artifactId}`);
 }
 
 function str(v: FormDataEntryValue | null): string | undefined {
