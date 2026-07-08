@@ -210,9 +210,11 @@ pnpm db:seed                    # optional: load demo artifacts
 pnpm dev                        # http://localhost:3000
 ```
 
-Writes on the web UI (publish, delete, share management) are gated by a team
-token: visit `/unlock` and enter your `ADMIN_API_TOKEN` once (stored as an
-httpOnly cookie). Browsing and commenting need no token.
+The web UI is gated by a team token: visit `/unlock` and enter your
+`ADMIN_API_TOKEN` once (stored as an httpOnly cookie). Every page — browsing,
+artifact detail, publish, admin — requires it; the only public surfaces are
+share-link pages (`/share/<token>`, which also authorize the content they embed
+via `?st=` on `/raw`) and the REST/MCP read operations.
 
 ## Environment variables
 
@@ -390,7 +392,9 @@ flowchart TD
   compared in constant time, backed by a DB row for revocation; only the token
   hash is stored, and full tokens are never logged.
 - **Writes are bearer-gated** (constant-time check) on REST and MCP, before any
-  core call; reads and shared-artifact access are token-gated by the share link.
+  core call; REST/MCP reads stay open, but web pages and `/raw/[id]` content
+  require the unlocked session (or bearer token), with share links (`?st=`)
+  authorizing exactly their one artifact.
 - **Uploads** are size-capped and MIME-sniffed server-side (never trusting the
   client's declared type).
 

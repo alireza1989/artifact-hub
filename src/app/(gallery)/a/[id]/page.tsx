@@ -1,5 +1,5 @@
 import { Download, ExternalLink, RefreshCw } from "lucide-react";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { cache, Suspense } from "react";
 import { ArtifactPreview } from "@/components/artifacts/preview";
 import { CodeView } from "@/components/artifacts/preview/code-view";
@@ -62,6 +62,11 @@ const SOURCE_TEXT_LIMIT = 512 * 1024;
 export default async function ArtifactPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
+  // Team gating (decision 2026-07-07): gate before the artifact fetch so an
+  // unauthenticated visitor can't probe which ids exist. External reviewers see
+  // artifacts via /share/[token], never here.
+  if (!(await hasValidSession())) redirect(`/unlock?next=${encodeURIComponent(`/a/${id}`)}`);
+
   let artifact: Awaited<ReturnType<typeof getArtifact>>;
   try {
     artifact = await getArtifactCached(artifactIdSchema.parse(id));
@@ -70,10 +75,9 @@ export default async function ArtifactPage({ params }: { params: Promise<{ id: s
     throw error;
   }
 
-  const canManage = await hasValidSession();
   // getFeedback lazily (re)generates the synthesis when there are ≥2 comments.
   const [shareLinks, feedback] = await Promise.all([
-    canManage ? listShareLinks(artifact.id) : Promise.resolve([]),
+    listShareLinks(artifact.id),
     getFeedback(artifact.id),
   ]);
 
@@ -136,17 +140,15 @@ export default async function ArtifactPage({ params }: { params: Promise<{ id: s
             </CardContent>
           </Card>
 
-          {canManage ? (
-            <MetadataEditor
-              artifactId={artifact.id}
-              title={artifact.title}
-              description={artifact.description ?? ""}
-              tags={artifact.tags}
-              suggested={suggested}
-            />
-          ) : null}
+          <MetadataEditor
+            artifactId={artifact.id}
+            title={artifact.title}
+            description={artifact.description ?? ""}
+            tags={artifact.tags}
+            suggested={suggested}
+          />
 
-          {canManage ? <ShareManager artifactId={artifact.id} links={shareLinks} /> : null}
+          <ShareManager artifactId={artifact.id} links={shareLinks} />
 
           <div className="flex flex-col gap-2">
             <Button asChild variant="outline">
@@ -154,7 +156,7 @@ export default async function ArtifactPage({ params }: { params: Promise<{ id: s
                 <Download /> Download
               </a>
             </Button>
-            {canManage ? <DeleteArtifactButton id={artifact.id} /> : null}
+            <DeleteArtifactButton id={artifact.id} />
           </div>
         </aside>
       </div>
@@ -164,7 +166,7 @@ export default async function ArtifactPage({ params }: { params: Promise<{ id: s
           <h2 className="text-lg font-semibold tracking-tight">
             Feedback{feedback.total > 0 ? ` (${feedback.total})` : ""}
           </h2>
-          {canManage && feedback.summary ? (
+          {feedback.summary ? (
             // Re-run Feature B (PLAN Phase 6.6): drops the stored summary; this
             // page's next render regenerates it from the current comments.
             <form action={refreshSynthesisAction}>

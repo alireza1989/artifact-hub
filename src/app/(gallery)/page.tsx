@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ArtifactCard } from "@/components/artifacts/artifact-card";
 import { GalleryControls } from "@/components/artifacts/gallery-controls";
 import { BrandMark } from "@/components/brand/wordmark";
@@ -6,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { searchArtifactsNaturally } from "@/core/ai";
+import { hasValidSession } from "@/lib/auth/session";
 import { type ListQuery, listQuerySchema } from "@/lib/validation";
 
 export const dynamic = "force-dynamic";
@@ -28,6 +30,10 @@ export default async function GalleryPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+  // Team gating (decision 2026-07-07): every page except /share/[token] and
+  // /unlock requires the unlocked session.
+  if (!(await hasValidSession())) redirect("/unlock");
+
   const sp = await searchParams;
   const query = listQuerySchema.parse({
     q: first(sp.q),

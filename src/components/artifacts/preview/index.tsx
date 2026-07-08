@@ -26,8 +26,19 @@ function prettyJson(text: string): string {
 
 // Renders the right viewer per artifact kind (PLAN §2). Active content (HTML/SVG)
 // is isolated in a sandboxed iframe pointed at /raw; passive kinds render inline.
-export async function ArtifactPreview({ artifact }: { artifact: Artifact }) {
-  const raw = `/raw/${artifact.id}`;
+// /raw is team-gated: gallery visitors authenticate via the session cookie the
+// browser sends automatically; the share viewer has no session, so it passes its
+// share token and the preview appends it (?st=) to every /raw URL.
+export async function ArtifactPreview({
+  artifact,
+  shareToken,
+}: {
+  artifact: Artifact;
+  shareToken?: string;
+}) {
+  const raw = shareToken
+    ? `/raw/${artifact.id}?st=${encodeURIComponent(shareToken)}`
+    : `/raw/${artifact.id}`;
 
   switch (artifact.kind) {
     case "html":
@@ -89,7 +100,7 @@ export async function ArtifactPreview({ artifact }: { artifact: Artifact }) {
             This file type has no inline preview ({formatBytes(artifact.sizeBytes)}).
           </p>
           <a
-            href={`${raw}?download`}
+            href={`${raw}${shareToken ? "&" : "?"}download`}
             className="text-primary inline-flex items-center gap-1.5 text-sm underline underline-offset-2"
           >
             <Download className="size-4" /> Download file

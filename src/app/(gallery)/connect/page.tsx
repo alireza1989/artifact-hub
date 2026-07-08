@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { hasValidSession } from "@/lib/auth/session";
 import { getEnv } from "@/lib/env";
 import { ConnectPanel } from "./connect-panel";
@@ -5,12 +6,12 @@ import { ConnectPanel } from "./connect-panel";
 export const dynamic = "force-dynamic";
 
 // Reviewer-onboarding page (PLAN Phase 6.6): everything needed to connect an MCP
-// client, copy-paste ready. Public — the snippets carry a token placeholder; the
-// real token is passed to the client panel only for an unlocked owner session,
-// and even then only rendered after an explicit toggle.
+// client, copy-paste ready. Team-gated like the rest of the hub (decision
+// 2026-07-07), so every visitor is an unlocked owner — the real token is passed
+// to the panel, but still only rendered after an explicit toggle.
 export default async function ConnectPage() {
+  if (!(await hasValidSession())) redirect("/unlock?next=/connect");
   const env = getEnv();
-  const isOwner = await hasValidSession();
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -21,7 +22,7 @@ export default async function ConnectPage() {
           conversation.
         </p>
       </div>
-      <ConnectPanel baseUrl={env.APP_BASE_URL} token={isOwner ? env.ADMIN_API_TOKEN : undefined} />
+      <ConnectPanel baseUrl={env.APP_BASE_URL} token={env.ADMIN_API_TOKEN} />
     </div>
   );
 }

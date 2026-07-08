@@ -18,6 +18,24 @@ export async function hasValidSession(): Promise<boolean> {
   return value != null && constantTimeEqual(value, getEnv().ADMIN_API_TOKEN);
 }
 
+// Session check for Route Handlers that receive the Request directly (e.g.
+// /raw/[id]): reads the cookie off the request instead of next/headers, so the
+// handler stays callable with a plain Request in integration tests.
+export function requestHasValidSession(req: Request): boolean {
+  const header = req.headers.get("cookie");
+  if (!header) return false;
+  for (const part of header.split(";")) {
+    const eq = part.indexOf("=");
+    if (eq === -1) continue;
+    if (part.slice(0, eq).trim() !== SESSION_COOKIE) continue;
+    return constantTimeEqual(
+      decodeURIComponent(part.slice(eq + 1).trim()),
+      getEnv().ADMIN_API_TOKEN,
+    );
+  }
+  return false;
+}
+
 // Validate a submitted token and, if correct, persist the session cookie. Must be
 // called from a Server Action or Route Handler (cookie writes are not allowed
 // during render). Returns whether the token was accepted.
@@ -35,4 +53,10 @@ export async function createSession(token: string): Promise<boolean> {
 
 export async function clearSession(): Promise<void> {
   (await cookies()).delete(SESSION_COOKIE);
+}
+
+// Post-unlock redirect target (?next=...). Only same-site paths — anything else
+// ("https://evil.example", "//evil.example") would make /unlock an open redirect.
+export function safeNextPath(next: string | undefined | null): string {
+  return next?.startsWith("/") && !next.startsWith("//") ? next : "/";
 }

@@ -12,7 +12,7 @@ import {
 } from "@/core/artifacts";
 import { DomainError } from "@/core/errors";
 import { createShareLink, revokeShareLink, ShareLinkNotFoundError } from "@/core/sharing";
-import { createSession, hasValidSession } from "@/lib/auth/session";
+import { createSession, hasValidSession, safeNextPath } from "@/lib/auth/session";
 import { logger } from "@/lib/logger";
 import { artifactIdSchema, publishMetadataSchema, shareDurationSchema } from "@/lib/validation";
 
@@ -28,11 +28,12 @@ function messageFor(error: unknown, context: Record<string, unknown>): string {
   return "Something went wrong. Please try again.";
 }
 
-// Token-gate (PLAN §3.4): validate the team token and set the session cookie.
+// Token-gate (PLAN §3.4): validate the team token and set the session cookie,
+// then return the visitor to the page that sent them to /unlock.
 export async function unlockAction(_prev: FormState, formData: FormData): Promise<FormState> {
   const token = String(formData.get("token") ?? "");
   if (!(await createSession(token))) return { error: "That token is not correct." };
-  redirect("/publish");
+  redirect(safeNextPath(String(formData.get("next") ?? "")));
 }
 
 // Web publish. Auth via session cookie; content + metadata from the form.

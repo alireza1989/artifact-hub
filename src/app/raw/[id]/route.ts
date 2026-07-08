@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import { ArtifactNotFoundError, getArtifactContent } from "@/core/artifacts";
+import { verifyShareToken } from "@/core/sharing";
 import type { Artifact } from "@/db/schema";
+import { requestHasValidSession } from "@/lib/auth/session";
+import { isAuthorized } from "@/lib/http/auth";
 import { toErrorResponse } from "@/lib/http/errors";
 import type { ArtifactKind } from "@/lib/validation";
-import { artifactIdSchema } from "@/lib/validation";
+import { artifactIdSchema, shareTokenSchema } from "@/lib/validation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -66,11 +69,31 @@ function contentTypeHeader(artifact: Artifact): string {
     : artifact.contentType;
 }
 
+// Team gating (decision 2026-07-07): content is no longer public. A request must
+// carry the unlocked-session cookie, the admin bearer token, or a share token
+// (?st=...) that grants exactly this artifact — the latter is how the public
+// share viewer's iframes/images load content without a session. countAccess:false
+// because the share page GET already counted the view; per-asset fetches would
+// inflate the counter.
+async function isAllowed(req: Request, id: string): Promise<boolean> {
+  if (requestHasValidSession(req) || isAuthorized(req)) return true;
+  const st = shareTokenSchema.safeParse(new URL(req.url).searchParams.get("st"));
+  if (!st.success) return false;
+  const result = await verifyShareToken(st.data, { countAccess: false });
+  return result.ok && result.artifact.id === id;
+}
+
 // GET /raw/:id — serves artifact bytes under the security headers above. Used as
 // the src for sandboxed HTML/SVG iframes, <img>/<embed> sources, and downloads.
 export async function GET(req: Request, { params }: Ctx): Promise<NextResponse> {
   const { id } = await params;
   try {
+    if (!(await isAllowed(req, id))) {
+      return new NextResponse(
+        "This artifact is team-only. Unlock the hub at /unlock or use a valid share link.",
+        { status: 401 },
+      );
+    }
     const { artifact, bytes } = await getArtifactContent(artifactIdSchema.parse(id));
     const download = new URL(req.url).searchParams.has("download");
 

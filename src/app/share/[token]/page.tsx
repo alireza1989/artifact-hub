@@ -100,7 +100,7 @@ export default async function SharePage({ params }: { params: Promise<{ token: s
           (where it's submitted). */}
       <AnchorComposeProvider>
         <AnchoredPreview kind={artifact.kind} pins={numberImagePins(feedback.comments)}>
-          <ArtifactPreview artifact={artifact} />
+          <ArtifactPreview artifact={artifact} shareToken={token} />
         </AnchoredPreview>
 
         {feedback.summary ? (

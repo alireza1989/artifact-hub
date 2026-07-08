@@ -7,10 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { type FormState, unlockAction } from "../actions";
 
-export function UnlockForm() {
+export function UnlockForm({ next }: { next?: string }) {
   const [state, action, pending] = useActionState<FormState, FormData>(unlockAction, {});
 
-  // Success redirects to /publish; only failures need feedback here.
+  // Success redirects (to `next` or the gallery); only failures need feedback here.
   const lastState = useRef(state);
   useEffect(() => {
     if (state === lastState.current) return;
@@ -20,6 +20,7 @@ export function UnlockForm() {
 
   return (
     <form action={action} className="space-y-4">
+      {next ? <input type="hidden" name="next" value={next} /> : null}
       <div className="space-y-1">
         <Label htmlFor="team-token">Team token</Label>
         <Input
