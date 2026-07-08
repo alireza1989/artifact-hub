@@ -31,6 +31,16 @@ export function ArtifactCard({ artifact }: { artifact: ArtifactListItem }) {
         >
           {kindLabel(artifact.kind)}
         </Badge>
+        {artifact.commentCount > 0 ? (
+          <Badge
+            variant="outline"
+            className="bg-background/85 text-muted-foreground absolute top-2.5 right-2.5 gap-1 backdrop-blur"
+            aria-label={`${artifact.commentCount} comment${artifact.commentCount === 1 ? "" : "s"}`}
+          >
+            <MessageSquare aria-hidden="true" className="size-3" />
+            {artifact.commentCount}
+          </Badge>
+        ) : null}
       </div>
 
       <div className="flex flex-1 flex-col gap-2 p-4">
@@ -57,11 +67,6 @@ export function ArtifactCard({ artifact }: { artifact: ArtifactListItem }) {
 
         <div className="text-muted-foreground mt-auto flex items-center gap-3 pt-1 text-xs">
           <span>{formatDate(artifact.createdAt)}</span>
-          {artifact.commentCount > 0 ? (
-            <span className="inline-flex items-center gap-1">
-              <MessageSquare className="size-3" /> {artifact.commentCount}
-            </span>
-          ) : null}
         </div>
       </div>
     </Card>
