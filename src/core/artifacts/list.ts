@@ -1,10 +1,10 @@
 import { and, arrayOverlaps, asc, desc, eq, gte, type SQL, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import type { Artifact } from "@/db/schema";
-import { artifacts, comments } from "@/db/schema";
+import { artifacts, comments, shareLinks } from "@/db/schema";
 import type { ListQuery } from "@/lib/validation";
 
-export type ArtifactListItem = Artifact & { commentCount: number };
+export type ArtifactListItem = Artifact & { commentCount: number; hasActiveShareLink: boolean };
 export type ArtifactListResult = {
   items: ArtifactListItem[];
   total: number;
@@ -36,12 +36,25 @@ export async function listArtifacts(query: ListQuery): Promise<ArtifactListResul
       ]
     : [query.sort === "oldest" ? asc(artifacts.createdAt) : desc(artifacts.createdAt)];
 
+  // Correlated subqueries must alias the inner table and qualify the outer
+  // column: in a single-table select Drizzle renders `${table.column}` fragments
+  // UNQUALIFIED, so `${comments.artifactId} = ${artifacts.id}` became
+  // `"artifact_id" = "id"` — both resolving to the INNER table and never matching
+  // (commentCount silently returned 0 for every artifact until 2026-07-08).
   const commentCount = sql<number>`(
-    select count(*)::int from ${comments} where ${comments.artifactId} = ${artifacts.id}
+    select count(*)::int from ${comments} c where c.artifact_id = ${artifacts}.id
+  )`;
+
+  // "Active" mirrors verifyShareToken: not revoked and not expired.
+  const hasActiveShareLink = sql<boolean>`exists(
+    select 1 from ${shareLinks} sl
+    where sl.artifact_id = ${artifacts}.id
+      and sl.revoked_at is null
+      and sl.expires_at > now()
   )`;
 
   const rows = await db
-    .select({ artifact: artifacts, commentCount })
+    .select({ artifact: artifacts, commentCount, hasActiveShareLink })
     .from(artifacts)
     .where(where)
     .orderBy(...orderBy)
@@ -54,7 +67,11 @@ export async function listArtifacts(query: ListQuery): Promise<ArtifactListResul
     .where(where);
 
   return {
-    items: rows.map((r) => ({ ...r.artifact, commentCount: r.commentCount })),
+    items: rows.map((r) => ({
+      ...r.artifact,
+      commentCount: r.commentCount,
+      hasActiveShareLink: r.hasActiveShareLink,
+    })),
     total: totalRows[0]?.total ?? 0,
     limit: query.limit,
     offset: query.offset,

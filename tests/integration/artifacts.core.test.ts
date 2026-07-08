@@ -91,9 +91,30 @@ describe("core/artifacts search + filter", () => {
     expect(page.total).toBe(5);
   });
 
-  it("includes a comment count (zero when none)", async () => {
-    const created = await publish("hello", "n.txt");
-    const result = await listArtifacts(query());
-    expect(result.items.find((a) => a.id === created.id)?.commentCount).toBe(0);
+  it("counts comments per artifact (zero when none)", async () => {
+    const { addComment } = await import("@/core/feedback");
+    const commented = await publish("hello", "n.txt");
+    const quiet = await publish("hello", "m.txt");
+    await addComment({ artifactId: commented.id, authorName: "Alex", body: "nice" });
+    await addComment({ artifactId: commented.id, authorName: "Sam", body: "ship it" });
+
+    const byId = new Map((await listArtifacts(query())).items.map((a) => [a.id, a]));
+    expect(byId.get(commented.id)?.commentCount).toBe(2);
+    expect(byId.get(quiet.id)?.commentCount).toBe(0);
+  });
+
+  it("flags artifacts with an ACTIVE share link (revoked links don't count)", async () => {
+    const { createShareLink, revokeShareLink } = await import("@/core/sharing");
+    const shared = await publish("hello", "shared.txt");
+    const revoked = await publish("hello", "revoked.txt");
+    const unshared = await publish("hello", "unshared.txt");
+    await createShareLink(shared.id, "1h");
+    const link = await createShareLink(revoked.id, "1h");
+    await revokeShareLink(link.linkId);
+
+    const byId = new Map((await listArtifacts(query())).items.map((a) => [a.id, a]));
+    expect(byId.get(shared.id)?.hasActiveShareLink).toBe(true);
+    expect(byId.get(revoked.id)?.hasActiveShareLink).toBe(false);
+    expect(byId.get(unshared.id)?.hasActiveShareLink).toBe(false);
   });
 });

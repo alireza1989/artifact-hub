@@ -120,7 +120,10 @@
       "mcp__artifact-hub__publish_artifact",
       "mcp__artifact-hub__add_comment",
       "mcp__artifact-hub__create_share_link",
-      "mcp__artifact-hub__get_feedback"
+      "mcp__artifact-hub__get_feedback",
+      "Bash(git pull *)",
+      "Bash(git stash *)",
+      "Bash(break)"
     ],
     "deny": [
       "Read(.env)",

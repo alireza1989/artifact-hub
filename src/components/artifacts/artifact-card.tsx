@@ -1,4 +1,4 @@
-import { MessageSquare } from "lucide-react";
+import { Link2, MessageSquare } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -31,16 +31,28 @@ export function ArtifactCard({ artifact }: { artifact: ArtifactListItem }) {
         >
           {kindLabel(artifact.kind)}
         </Badge>
-        {artifact.commentCount > 0 ? (
+        <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5">
+          {artifact.commentCount > 0 ? (
+            <Badge
+              variant="outline"
+              className="bg-background/85 text-muted-foreground gap-1 backdrop-blur"
+              aria-label={`${artifact.commentCount} comment${artifact.commentCount === 1 ? "" : "s"}`}
+            >
+              <MessageSquare aria-hidden="true" className="size-3" />
+              {artifact.commentCount}
+            </Badge>
+          ) : null}
           <Badge
             variant="outline"
-            className="bg-background/85 text-muted-foreground absolute top-2.5 right-2.5 gap-1 backdrop-blur"
-            aria-label={`${artifact.commentCount} comment${artifact.commentCount === 1 ? "" : "s"}`}
+            className={`bg-background/85 backdrop-blur ${
+              artifact.hasActiveShareLink ? "text-primary" : "text-muted-foreground/40"
+            }`}
+            aria-label={artifact.hasActiveShareLink ? "Has an active share link" : "Not shared"}
+            title={artifact.hasActiveShareLink ? "Has an active share link" : "Not shared"}
           >
-            <MessageSquare aria-hidden="true" className="size-3" />
-            {artifact.commentCount}
+            <Link2 aria-hidden="true" className="size-3" />
           </Badge>
-        ) : null}
+        </div>
       </div>
 
       <div className="flex flex-1 flex-col gap-2 p-4">
