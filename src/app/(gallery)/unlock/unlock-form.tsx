@@ -29,6 +29,7 @@ export function UnlockForm({ next }: { next?: string }) {
           name="token"
           autoComplete="off"
           placeholder="Enter your team token"
+          autoFocus
         />
       </div>
       {state.error ? (

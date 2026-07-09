@@ -1,6 +1,6 @@
 "use client";
 
-import { useOptimistic, useRef, useState, useTransition } from "react";
+import { useEffect, useOptimistic, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { numberImagePins, pinNumberFor } from "@/components/feedback/anchor-utils";
 import {
@@ -33,6 +33,27 @@ function initials(name: string): string {
   return parts.map((p) => p[0]?.toUpperCase() ?? "").join("") || "?";
 }
 
+// Reviewers usually leave several comments across visits — remember their name
+// locally so they only type it once. Guarded: localStorage can throw (private
+// browsing, disabled storage) and that must never break commenting.
+const NAME_KEY = "ah-reviewer-name";
+
+function loadSavedName(): string {
+  try {
+    return localStorage.getItem(NAME_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+function saveName(name: string): void {
+  try {
+    localStorage.setItem(NAME_KEY, name);
+  } catch {
+    // Best-effort only.
+  }
+}
+
 // Read-only-except-commenting feedback panel for the share view. Comments append
 // optimistically so an external reviewer sees their note land instantly; on a
 // server error the optimistic entry reverts and the error shows (PLAN §7).
@@ -47,6 +68,11 @@ export function ShareComments({ token, comments }: { token: string; comments: Co
   const [isPending, startTransition] = useTransition();
   const formRef = useRef<HTMLFormElement>(null);
   const compose = useAnchorCompose();
+
+  // Controlled so it survives the post-submit form reset; hydrated from
+  // localStorage in an effect (not the initializer) to keep SSR markup stable.
+  const [authorName, setAuthorName] = useState("");
+  useEffect(() => setAuthorName(loadSavedName()), []);
 
   // Pin numbers must match the preview's markers, which render from the
   // server-provided comments — exclude the optimistic pending entry or every
@@ -79,6 +105,7 @@ export function ShareComments({ token, comments }: { token: string; comments: Co
         setError(res.error);
         toast.error(res.error);
       } else {
+        saveName(authorName);
         formRef.current?.reset();
         compose?.setPending(null);
         toast.success("Comment posted");
@@ -110,6 +137,8 @@ export function ShareComments({ token, comments }: { token: string; comments: Co
           maxLength={AUTHOR_NAME_MAX}
           placeholder="Your name"
           aria-label="Your name"
+          value={authorName}
+          onChange={(e) => setAuthorName(e.target.value)}
         />
         <Textarea
           name="body"

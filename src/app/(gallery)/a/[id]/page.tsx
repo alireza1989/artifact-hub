@@ -1,4 +1,5 @@
-import { Download, ExternalLink, RefreshCw } from "lucide-react";
+import { ArrowLeft, Download, ExternalLink, RefreshCw } from "lucide-react";
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { cache, Suspense } from "react";
 import { ArtifactPreview } from "@/components/artifacts/preview";
@@ -93,6 +94,12 @@ export default async function ArtifactPage({ params }: { params: Promise<{ id: s
   return (
     <div className="space-y-8">
       <div className="space-y-2">
+        <Link
+          href="/"
+          className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm transition-colors"
+        >
+          <ArrowLeft className="size-4" /> Gallery
+        </Link>
         <div className="flex items-center gap-2">
           <Badge variant="secondary">{kindLabel(artifact.kind)}</Badge>
           <span className="text-muted-foreground text-xs">

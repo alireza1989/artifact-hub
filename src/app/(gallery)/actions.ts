@@ -12,7 +12,7 @@ import {
 } from "@/core/artifacts";
 import { DomainError } from "@/core/errors";
 import { createShareLink, revokeShareLink, ShareLinkNotFoundError } from "@/core/sharing";
-import { createSession, hasValidSession, safeNextPath } from "@/lib/auth/session";
+import { clearSession, createSession, hasValidSession, safeNextPath } from "@/lib/auth/session";
 import { logger } from "@/lib/logger";
 import { artifactIdSchema, publishMetadataSchema, shareDurationSchema } from "@/lib/validation";
 
@@ -34,6 +34,13 @@ export async function unlockAction(_prev: FormState, formData: FormData): Promis
   const token = String(formData.get("token") ?? "");
   if (!(await createSession(token))) return { error: "That token is not correct." };
   redirect(safeNextPath(String(formData.get("next") ?? "")));
+}
+
+// Drop the session on this browser (shared/borrowed machine). The token itself
+// stays valid — this only forgets it here.
+export async function lockAction(): Promise<void> {
+  await clearSession();
+  redirect("/unlock");
 }
 
 // Web publish. Auth via session cookie; content + metadata from the form.

@@ -1,9 +1,10 @@
-import { Cable, Plus, Settings2 } from "lucide-react";
+import { Cable, LockKeyhole, Plus, Settings2 } from "lucide-react";
 import Link from "next/link";
 import { Wordmark } from "@/components/brand/wordmark";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { hasValidSession } from "@/lib/auth/session";
+import { lockAction } from "./actions";
 
 // Shared chrome for browse / detail / publish (all in the gallery route group).
 // The Admin link renders only for an unlocked owner session — visibility only;
@@ -48,6 +49,20 @@ export default async function GalleryLayout({ children }: { children: React.Reac
                 <Plus /> Publish
               </Link>
             </Button>
+            {isOwner ? (
+              // Forget the session cookie on this browser (the token stays valid).
+              <form action={lockAction}>
+                <Button
+                  type="submit"
+                  variant="ghost"
+                  size="sm"
+                  title="Lock the hub on this browser"
+                  aria-label="Lock the hub on this browser"
+                >
+                  <LockKeyhole />
+                </Button>
+              </form>
+            ) : null}
           </div>
         </nav>
       </header>

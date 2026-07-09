@@ -20,6 +20,7 @@ function buildHref(base: ListQuery, offset: number): string {
   if (base.q) p.set("q", base.q);
   if (base.kind) p.set("kind", base.kind);
   for (const tag of base.tags ?? []) p.append("tag", tag);
+  if (base.sort === "oldest") p.set("sort", base.sort);
   if (offset > 0) p.set("offset", String(offset));
   const qs = p.toString();
   return qs ? `/?${qs}` : "/";
@@ -48,6 +49,7 @@ export default async function GalleryPage({
 
   const activeTag = query.tags?.[0];
   const hasFilters = Boolean(query.q || query.kind || activeTag);
+  const showReset = hasFilters || query.sort === "oldest";
 
   return (
     <div className="space-y-6">
@@ -60,7 +62,7 @@ export default async function GalleryPage({
             </p>
           ) : null}
         </div>
-        <GalleryControls q={query.q} kind={query.kind} />
+        <GalleryControls q={query.q} kind={query.kind} sort={query.sort} showReset={showReset} />
         {activeTag ? (
           <div className="text-muted-foreground flex items-center gap-2 text-sm">
             <span className="inline-flex items-center gap-1.5">

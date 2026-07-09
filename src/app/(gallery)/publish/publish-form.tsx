@@ -25,9 +25,22 @@ export function PublishForm() {
     if (state.error) toast.error(state.error);
   }, [state]);
 
+  // Web publish rides a Server Action capped at 4mb (next.config bodySizeLimit);
+  // reject oversized files here instead of uploading fully into an opaque Next
+  // error. Headroom covers multipart framing + the metadata fields. The REST/MCP
+  // paths (25 MB cap) are unaffected.
+  const WEB_UPLOAD_MAX = 4 * 1024 * 1024 - 64 * 1024;
+
   function adopt(files: FileList | null) {
     const file = files?.[0];
     if (!file || !inputRef.current) return;
+    if (file.size > WEB_UPLOAD_MAX) {
+      toast.error(
+        `"${file.name || "That file"}" is ${formatBytes(file.size)} — web publishing caps at 4 MB. ` +
+          "Publish bigger files (up to 25 MB) via the REST API or MCP.",
+      );
+      return;
+    }
     const dt = new DataTransfer();
     dt.items.add(file);
     inputRef.current.files = dt.files;
