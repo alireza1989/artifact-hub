@@ -38,7 +38,7 @@ export default async function AdminShareLinksPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
-  if (!(await hasValidSession())) redirect("/unlock");
+  if (!(await hasValidSession())) redirect("/unlock?next=/admin/share-links");
   const sp = await searchParams;
   const offset = pageOffsetSchema.parse(first(sp.offset)) as number;
   const { items, total, limit } = await listAllShareLinks({ limit: PAGE_SIZE, offset });

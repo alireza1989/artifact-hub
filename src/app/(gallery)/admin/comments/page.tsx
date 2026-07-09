@@ -31,7 +31,7 @@ export default async function AdminCommentsPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
-  if (!(await hasValidSession())) redirect("/unlock");
+  if (!(await hasValidSession())) redirect("/unlock?next=/admin/comments");
   const sp = await searchParams;
   const offset = pageOffsetSchema.parse(first(sp.offset)) as number;
   const { items, total, limit } = await listRecentComments({ limit: PAGE_SIZE, offset });

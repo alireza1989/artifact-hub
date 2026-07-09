@@ -21,6 +21,7 @@ import { hasValidSession } from "@/lib/auth/session";
 import { formatBytes, formatDate, kindLabel } from "@/lib/format";
 import { artifactIdSchema } from "@/lib/validation";
 import { refreshSynthesisAction } from "../../actions";
+import { CopyIdButton } from "./copy-id-button";
 import { DeleteArtifactButton } from "./delete-button";
 import { MetadataEditor } from "./metadata-editor";
 import { ShareManager } from "./share-manager";
@@ -133,6 +134,12 @@ export default async function ArtifactPage({ params }: { params: Promise<{ id: s
                 <Meta label="Size" value={formatBytes(artifact.sizeBytes)} />
                 <Meta label="Source" value={artifact.source} />
                 <Meta label="Published" value={formatDate(artifact.createdAt)} />
+                <div className="flex items-center justify-between gap-4">
+                  <dt className="text-muted-foreground">ID</dt>
+                  <dd className="min-w-0">
+                    <CopyIdButton id={artifact.id} />
+                  </dd>
+                </div>
               </dl>
               {artifact.tags.length > 0 ? (
                 <>

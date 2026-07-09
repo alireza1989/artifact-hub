@@ -127,8 +127,10 @@ export function PublishForm() {
         </p>
       ) : null}
 
-      <Button type="submit" size="lg" disabled={pending} className="w-full">
-        {pending ? "Publishing…" : "Publish artifact"}
+      {/* Disabled until a file is adopted — the server still re-checks, but a
+          dead-obvious disabled button beats a round-trip "choose a file" error. */}
+      <Button type="submit" size="lg" disabled={pending || !fileName} className="w-full">
+        {pending ? "Publishing…" : fileName ? "Publish artifact" : "Choose a file to publish"}
       </Button>
     </form>
   );

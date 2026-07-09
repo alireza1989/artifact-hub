@@ -18,7 +18,7 @@ import { formatDate } from "@/lib/format";
 export const dynamic = "force-dynamic";
 
 export default async function AdminAiPage() {
-  if (!(await hasValidSession())) redirect("/unlock");
+  if (!(await hasValidSession())) redirect("/unlock?next=/admin/ai");
 
   const [day, week, failures] = await Promise.all([
     getAiWindowStats(24),

@@ -34,7 +34,7 @@ export default async function AdminArtifactsPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
-  if (!(await hasValidSession())) redirect("/unlock");
+  if (!(await hasValidSession())) redirect("/unlock?next=/admin/artifacts");
   const sp = await searchParams;
   const query = listQuerySchema.parse({ q: first(sp.q), offset: first(sp.offset), limit: 20 });
   const { items, total, limit, offset } = await listArtifacts(query);

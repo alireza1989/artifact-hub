@@ -1,6 +1,7 @@
 import { Cable, LockKeyhole, Plus, Settings2 } from "lucide-react";
 import Link from "next/link";
 import { Wordmark } from "@/components/brand/wordmark";
+import { NavLink } from "@/components/nav-link";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { hasValidSession } from "@/lib/auth/session";
@@ -32,23 +33,17 @@ export default async function GalleryLayout({ children }: { children: React.Reac
           </Link>
           <div className="flex items-center gap-2">
             <ThemeToggle />
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/connect">
-                <Cable /> Connect
-              </Link>
-            </Button>
+            <NavLink href="/connect">
+              <Cable /> Connect
+            </NavLink>
             {isOwner ? (
-              <Button asChild variant="ghost" size="sm">
-                <Link href="/admin">
-                  <Settings2 /> Admin
-                </Link>
-              </Button>
+              <NavLink href="/admin">
+                <Settings2 /> Admin
+              </NavLink>
             ) : null}
-            <Button asChild size="sm">
-              <Link href="/publish">
-                <Plus /> Publish
-              </Link>
-            </Button>
+            <NavLink href="/publish" variant="default">
+              <Plus /> Publish
+            </NavLink>
             {isOwner ? (
               // Forget the session cookie on this browser (the token stays valid).
               <form action={lockAction}>

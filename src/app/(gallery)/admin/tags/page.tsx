@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 // Tag management (PLAN Phase 6.7): the vocabulary with usage counts, plus the
 // AI-assisted suggest → review → apply cleanup flow.
 export default async function AdminTagsPage() {
-  if (!(await hasValidSession())) redirect("/unlock");
+  if (!(await hasValidSession())) redirect("/unlock?next=/admin/tags");
   const usage = await listTagUsage();
 
   return (
